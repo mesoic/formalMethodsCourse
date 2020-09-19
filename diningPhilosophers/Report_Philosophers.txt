@@ -1,0 +1,30 @@
+
+
+
+
+
+ Initialized philosopher (1) with neighbors (0, 2)
+          Initialized philosopher (0) with neighbors (3, 1)
+                  Initialized philosopher (2) with neighbors (1, 3)
+                      Initialized philosopher (3) with neighbors (2, 0)
+
+                  Philosopher (2) is thinking with fork (2) 
+                      Philosopher (3) is eating with forks (2) and (3)
+          Philosopher (0) is eating with forks (0) and (3)
+              Philosopher (1) is eating with forks (1) and (3)
+                      Philosopher (3) is thinking with fork (2) 
+              Philosopher (1) is thinking with fork (3) 
+                      Philosopher (3) is thinking with NO forks 
+          Philosopher (0) is thinking with fork (0) 
+                  Philosopher (2) is eating with forks (1) and (2)
+              Philosopher (1) is eating with forks (0) and (3)
+              Philosopher (1) is thinking with fork (3) 
+                  Philosopher (2) is eating with forks (1) and (2)
+          Philosopher (0) is eating with forks (0) and (3)
+                  Philosopher (2) is thinking with fork (2) 
+                      Philosopher (3) is eating with forks (0) and (2)
+          Philosopher (0) is thinking with fork (3) 
+              Philosopher (1) is thinking with fork (1) 
+          Philosopher (0) is thinking with NO forks 
+                  Philosopher (2) is eating with forks (1) and (2)
+                      Philosopher (3) is eating with forks (0) and (3)
