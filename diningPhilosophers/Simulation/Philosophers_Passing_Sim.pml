@@ -1,8 +1,16 @@
+// Dining philosophers problem (passing variation)
+
 // N defines the number of philosophers at the table. 
 #define N 4
 
 // CYCLES defines the number of updates that are run.
 #define CYCLES 5
+
+// 
+typedef Fork {
+	int id;		// Id of the fork. Fork is taken to be to the RIGHT of the philosopher
+	int phil;	// Id of the philosopher which is currently using the fork = -1 if not in use
+};
 
 // Define a global variable which holds the total number of initialized philosophers. 
 // We will use this as a way to engineer a blocking statement to prevent execution from 
@@ -11,8 +19,8 @@ int initialized = 0;
 
 // Since forks are a shared resource, we want to model them as a global variable. 
 // The index of the array fork[N] represents the state of the fork, and the value 
-// stored in the array represents the philosopher holding forks[N].
-int forks[N];
+// stored in the array represents the philosopher holding fork[N].
+int fork[N];
 
 // Note that each philosopher will have a unique ID.
 proctype phil(int idN) {
@@ -20,7 +28,7 @@ proctype phil(int idN) {
 	// We start by representing the fact that each philosopher starts with his own fork
 	// We want to make sure all processes get iniitalized before entering the main execution 
 	// loop, 
-	forks[idN] = idN;
+	fork[idN] = idN;
 
 	// We will need to calculate the ids of the neighbors (to be used later). We need this step 
 	// in order to establish a ring behaviour when updatig the state of forks. Note that this 
@@ -56,7 +64,7 @@ proctype phil(int idN) {
 
 	// As a secondary condition, we can can model check the initialization condition by the 
 	// following assertion
-	assert( forks[idN] == idN )
+	assert( fork[idN] == idN )
 
 	// The logic for the entire update routine needs to go in an atomic block. The block 
 	// should be designed such that there are no blocking processes. This represents a 
@@ -84,9 +92,9 @@ proctype phil(int idN) {
 		do
 		:: i < N -> 
 			if 
-			:: forks[i] == idN; Nforks_data[Nforks] = i; Nforks++; i++;
-			:: forks[i] == idL; Lforks_data[Lforks] = i; Lforks++; i++;
-			:: forks[i] == idR; Rforks_data[Rforks] = i; Rforks++; i++;
+			:: fork[i] == idN; Nforks_data[Nforks] = i; Nforks++; i++;
+			:: fork[i] == idL; Lforks_data[Lforks] = i; Lforks++; i++;
+			:: fork[i] == idR; Rforks_data[Rforks] = i; Rforks++; i++;
 			:: else; i++;
 			fi 
 		:: else -> break
@@ -114,22 +122,22 @@ proctype phil(int idN) {
 				// Case of both neighbors available
 				:: ( Lforks != 2 ) && ( Rforks != 2 );
 					if 
-					:: forks[ Nforks_data[0] ] = idL;
-					:: forks[ Nforks_data[0] ] = idR;
+					:: fork[ Nforks_data[0] ] = idL;
+					:: fork[ Nforks_data[0] ] = idR;
 					:: skip;
 					fi 
 
 				// Left neighbor full (forced pass right or hold)
 				:: ( Lforks == 2 ) && ( Rforks != 2 ); 
 					if 
-					:: forks[ Nforks_data[0] ] = idR;
+					:: fork[ Nforks_data[0] ] = idR;
 					:: skip;
 					fi
 
 				// Right neighbor full (forced pass left or hold)
 				:: ( Lforks != 2 ) && ( Rforks == 2 ); 
 					if 
-					:: forks[ Nforks_data[0] ] = idL
+					:: fork[ Nforks_data[0] ] = idL
 					:: skip; 
 					fi
 				// Case where both philosophers neighbors are full (needed for N >=5)
@@ -152,22 +160,22 @@ proctype phil(int idN) {
 				// Case of both neighbors available
 				:: ( Lforks != 2 ) && ( Rforks != 2 );
 					if 
-					:: forks[ _Fork ] = idL;
-					:: forks[ _Fork ] = idR;
+					:: fork[ _Fork ] = idL;
+					:: fork[ _Fork ] = idR;
 					:: skip;
 					fi 
 
 				// Left neighbor full (forced pass right or hold)
 				:: ( Lforks == 2 ) && ( Rforks != 2 ); 
 					if 
-					:: forks[ _Fork ] = idR;
+					:: fork[ _Fork ] = idR;
 					:: skip;
 					fi
 
 				// Right neighbor full (forced pass left or hold)
 				:: ( Lforks != 2 ) && ( Rforks == 2 ); 
 					if 
-					:: forks[ _Fork ] = idL
+					:: fork[ _Fork ] = idL
 					:: skip; 
 					fi
 				// Case where both philosophers neighbors are full (needed for N >=5)

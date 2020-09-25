@@ -1,0 +1,8 @@
+# Promela, pan files, never claims, and trail
+pan*
+*.tmp
+*.nvr 
+*.trail
+
+# Extras
+Report_Philosophers.txt
