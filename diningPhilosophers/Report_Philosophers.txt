@@ -283,11 +283,11 @@ For the program ModelChecking/Philosophers_PartialOrder_LTL.pml, the evaluation 
 
 However, because the evaluation of state occurs within an atomic block, the progress label strategy cannot be employed. Another strategy is to formulate temporal reasoning about the ownership status of the fork in order to assess if a philosopher owns two forks infinitely often. If this is true, then a philosopher is eating infinitely often. This formulation model checks for the same condition as the progress label strategy and is straightforward to evaluate.
 
-    ltl infinitelyOftenOwned{ []<> (Forks[i] == i && Forks[L] == i) }
+    ltl infinitelyOftenEating{ []<> (Forks[i] == i && Forks[L] == i) }
 
 In practice, it is only possible to check one PROMELA process at a time using this formulation. However, symmetry arguments suggest that a poof that one philosopher is eating infinitely often is sufficient to prove that all philosophers are eating infinitely often because the indexing is arbitrary. This argument also holds in the case of partial ordering, because the ltl formula looks for liveness in the (2 -> 0) transition, while partial ordering only affects (0 -> 1) transitions. For the specific case of Phil[1] the above ltl formula is with i = 1 which gives the following
 
-    ltl infinitelyOftenOwned{ []<> (Forks[1] == 1 && Forks[0] == 1) }
+    ltl infinitelyOftenEating{ []<> (Forks[1] == 1 && Forks[0] == 1) }
 
 When evaluating for liveness, it is important to invoke spin with weak fairness enabled. This forces the scheduler to hand over control to all processes eventually, as opposed to scheduling state the same process forever. When weak fairness is disabled, the following (trivial) trace involving one philosopher is sufficient to invalidate the ltl formula of interest.
 
@@ -333,17 +333,17 @@ Invoking spin with acceptance cycles (-a) weak fairness (-f), the evaluation of 
 
       spin -a Philosophers_PartialOrder_LTL.pml
       gcc -o pan pan.c
-      ./pan -a -f -N infinitelyOftenOwned
+      ./pan -a -f -N infinitelyOftenEating
 
       Note: alternatively spin can be invoked via:
-        spin -search -ltl infinitelyOftenOwned -f Philosophers_PartialOrder_LTL.pml
+        spin -search -ltl infinitelyOftenEating -f Philosophers_PartialOrder_LTL.pml
 
     (Spin Version 6.5.1 -- 31 July 2020)
     Warning: Search not completed
       + Partial Order Reduction
 
     Full statespace search for:
-      never claim           + (infinitelyOftenOwned)
+      never claim           + (infinitelyOftenEating)
       assertion violations  + (if within scope of claim)
       acceptance   cycles   + (fairness enabled)
       invalid end states  - (disabled by never claim)
@@ -368,7 +368,7 @@ Here, spin reports an error when evaluating our ltl formula. In order to gain gr
 
 The trace below demonstrate a cycle in which all four philosophers participate in decision logic, but only a subset of philosophers are eating thus demonstrating a condition of livelock. In the trace below, we see a condition in which Phil[1] does not reach an eating state (recall our ltl formula).
 
-    ltl infinitelyOftenOwned{ []<> (Forks[1] == 1 && Forks[0] == 1) }
+    ltl infinitelyOftenEating{ []<> (Forks[1] == 1 && Forks[0] == 1) }
 
 Examining the first step of the cycle, we find that the cycle begins with Phil[3] picking up Forks[2]. However, in this state, a valid transition also exists in which Phil[1] picks up Forks[1] effectively placing him in the "eating state". In other words, a valid transition to the "eating" state always exists for Phil[1], which would break the cycle but weak fairness is not enough to ensure that the scheduler enters that transition. The same issue occurs when one tries to verify that access to the "eating" state always exists via similar ltl. 
 
@@ -376,7 +376,7 @@ Examining the first step of the cycle, we find that the cycle begins with Phil[3
 
 Analysis with spin suggests that in all cases, weak fairness is not enough to guarantee that a given process will always enter an eating state. However, model checking suggests that scheduling with strong fairness would ensure that the Philosophers_PartialOrder_LTL.pml would always satisfy the specified ltl. 
 
-  ltl infinitelyOftenOwned{ []<> (Forks[1] == 1 && Forks[0] == 1) }
+  ltl infinitelyOftenEating{ []<> (Forks[1] == 1 && Forks[0] == 1) }
   ...
   <<<<<START OF CYCLE>>>>>
                   Philosopher (3) is thinking with NO forks -> Acquires fork (2)
