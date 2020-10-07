@@ -1,4 +1,4 @@
-// Dining philosophers problem (adjacent variation)
+// Dining philosophers problem (partial order variation)
 
 // N defines the number of philosophers at the table. 
 #define N 4
