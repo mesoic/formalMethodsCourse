@@ -131,6 +131,9 @@ proctype phil(int idN) {
 	// executing the main "do" loop.
 	initialized == N;
 
+	// The atomic block containing the logic of a philosopher updates the global state 
+	// constitutes the critical section of the code. The atomicity prevents the scheduler 
+	// from interleaving the state update mechanics of several processes.
 	do 
 	:: atomic {
 
@@ -215,8 +218,9 @@ proctype phil(int idN) {
 
 		// If both the philosopher occupies his fork and the fork on his immediate left
 		// then the philosopher is eating, and the forks are placed on the table.
-		:: (Forks[idN] == idN) && (Forks[idL] == idN); 	eating = 1;
+		:: (Forks[idN] == idN) && (Forks[idL] == idN);
 
+			label:
 			Forks[idN] = -1;
 			Forks[idL] = -1;
 			printf("Philosopher (%d) is eating with forks (%d, %d) -> Releases Forks (%d, %d)\n", idN, idN, idL, idN, idL)
@@ -253,6 +257,9 @@ ltl eventuallyDeadlock { <> deadlock }
 // Model check that our model always initializes all processes (pass)
 ltl eventuallyAlwaysInitialized{ <>[] (initialized == N) }
 
-// Model check that process always owns its fork infinitely often (fail)
-ltl eventuallyAlwaysOwned{ []<> (Forks[0] == 0) }
+// Model check that process owns its fork infinitely often (fail)
+ltl infinitelyOftenEating{ []<> (Forks[1] == 1 && Forks[0] == 1) }
+
+// Model check that process owns its fork infinitely often (fail)
+ltl infinitelyOftenAccess{ []<> (Forks[1] == -1 && Forks[0] == 1) }
 

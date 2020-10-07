@@ -130,6 +130,9 @@ proctype phil(int idN) {
 	initialized == N;
 
 	// To model check this, we need to take out the cycle counter (to allow infinite behaviour)
+	// The atomic block containing the logic of a philosopher updates the global state 
+	// constitutes the critical section of the code. The atomicity prevents the scheduler 
+	// from interleaving the state update mechanics of several processes.
 	do 
 	:: atomic {
 

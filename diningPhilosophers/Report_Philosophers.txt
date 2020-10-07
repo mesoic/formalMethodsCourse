@@ -1,0 +1,537 @@
+I: Problem Definition
+
+The dining philosophers problem is a famous problem in computer science which elucidates some of the difficulties working with concurrent systems and systems with parallelism. The problem statement is simple: N philosophers are seated around circular a table, with N forks. Any philosopher can be in one of two states "thinking" and "eating". In order to eat, a philosopher must be in possession of two forks simultaneously. The following diagram illustrates the case for N = 4. 
+
+      Phil[0] F[0]       P[3] F[3] 
+    
+      Phil[1] F[1]       P[2] F[2] 
+
+The rules are such that each philosopher may only pick up one fork at a time, and that there can be no communication between philosophers. Additionally, the position of the forks on the table are taken to be constant such that a given philosopher Phil[i] may only acquire his fork (Fork[i]) or the fork of his left neighbor (Fork[L]) at any given time. For example, Phil[1] can only acquire, Fork[1] or Fork[0], Phil[0] can only acquire Fork[0] or Fork[3] and so on. When a philosopher acquires two forks, he eats and places the forks back on the table.
+
+  Rules summary  
+  |   The process needs to acquire one fork at a time. In particular, it is forbidden to acquire more than one fork inside a single atomic block.
+  |   When both forks are acquired the philosopher eats and then puts the forks down again.
+  |   The forks are a shared resource and should be modeled as such: any fork can be acquired by any adjacent philosopher. 
+  |   No other form of communication is allowed between the philosophers.
+
+
+In this work, the dining philosophers will be represented as N concurrent PROMELA processes, and spin will be used to evaluate the state of the table for safety and liveness. Of particular interest is to examine whether the system avoids deadlock (i.e. that a new state is always available), and whether every philosopher eventually have access to two forks allowing him to enjoy his meal.
+
+While the problem description is simple enough, there are many pitfalls when it comes to building an model which gives provides a viable update logic. Additionally, the problem as formulated may be generalized to the problem of modeling many processes which require a single resource. This is a highly relevant problem in computer science, especially in the context of operating system design, resource allocation in distributed systems, and more.
+
+II: Principle Design 
+
+The PROMELA models presented in the following section all conform to the following program structure. 
+
+Dining Philosophers
+|
+|     Global Variable Definition 
+|
+|     Helper Macros
+|     |   Ring structure definition
+|     |   Update deadlock state
+|     |   Print state (debug)
+|
+|     Process Definition
+|     |   Initialization routine
+|     |   Initialization guard
+|     |   Update Logic (atomic) 
+|
+|     Process Initialization
+|   
+|     LTL Formulas
+
+
+The dining philosophers problem is primarily a problem of modeling multiple processes (the philosophers) which share a single resource (the forks). In this implementation, the forks are represented as shared memory array, and philosophers are represented as PROMELA processes which update the state of the array. Linear temporal logic can then be applied to the array in order to reason about program behavior. In order for this to work as intended, it is important that the processes are designed properly with respect to atomicity, such that scheduling accurately represents what occurs in the problem context. 
+
+As forks are a shared resource, and there are exactly (N) forks on the table, an int Forks[N] array is sufficient to represent status of the forks. Forks[i] with (0 <= i <= N) represents the ownership status of the i-th fork, which is taken to be the fork to the immediate right of the i-th Philosopher. When Philosopher i takes possession of Forks[i] then the update algorithm will ensure that Forks[i] == i. When a given fork is available, this will be represented as Forks[i] == -1. In order to provide some intuition for this, it is useful to consider how the state of the shared resource will be represented. 
+
+  Forks = [-1, 2, 2, 3] => Fork[0] is unoccupied, Fork[1] and Fork[2] are owned by Phil[2], and Fork[3] is owned by Phil[3]
+  Forks = [ 1, 1, 3, 3] => Fork[0] and Fork[1] are owned by Phil[1] and Fork[2] and Fork[3] are owned by Phil[3]
+  Forks = [ 0,-1,-1, 0] => Fork[0] and Fork[3] are owned by Phil[0] and Fork[1] and Fork[3] are unoccupied
+
+The benefit of the array approach is that is provides safety as it is not possible to represent a given fork being owned by two philosophers simultaneously using an integer array. Furthermore, the process update logic becomes simplified as it only involves changing the values of the elements of the Forks array. Notwithstanding checks for proper initialization of all processes, modeling the forks as shared resource array allows temporal logic to be expressed in terms of very simple statements about the array state.
+
+The PROMELA processes representing philosophers are broken into an initialization section and an execution statement separated by a blocking statement which ensures that all philosophers are initialized prior to executing the update logic. In order for the model to be representative, the update logic must be contained within an atomic block. In another view, the update logic is the *critical section* of each process, which is protected by atomicity. In this case, atomicity is sufficient to protect each critical section because only one process can read and update the global state at a given time. However, it is important to note that in order for this work work as expected, care must be taken to ensure that the evaluation of state is deterministic (i.e. non-blocking). If a blocking statement occurs within the *critical section*, the scheduler can give control to another process because atomic are only weakly atomic.
+
+Intuitively, atomicity of the logic portion of the code reflects the fact that a given philosopher must make a complete and deterministic decision about how to update state prior to the next philosopher making his decision about how to update state. Such a granularity of atomicity ensures that each philosopher evaluates against a consistent state. If atomicity was not specified properly, a given philosopher's (supposedly deterministic) update logic could block due to interleaving. This could occur in trace in which every guard of the update logic of one process was evaluated to false due to other processes making coordinating changes to global state.
+
+Given this program design, different versions of the update logic can be tested by modifying what occurs in the primary loop of the process definition. This will allow for the assessment of various conditions such as deadlock, livelock, safety, and liveness. For each variation of the update logic, two identical PROMELA programs are written. The first versions (located in ./Simulation) execute a predetermined number of cycles on each process allowing for explicit tracking of the program counter. Although this finite behavior is not appropriate for model checking, it is useful for debugging the update logic. The second version (located in ./ModelChecking) creates an infinite execution loop on each process to facilitate model checking. 
+
+III: Process Update Logic and Model Checking
+
+In this section, several approaches to the update logic are described. In all cases, the update logic is developed in such a way to ensure that the ring structure between processes is preserved. In the update logic, a given process Phil[i] is only allowed to own his for (Fork[i]) or the fork to his left (Fork[L]). For a given process Phil[i], the left neighbor in the ring structure is denoted Phil[L], and the right neighbor in the ring structure is denoted Phil[R]. 
+
+Dining Philosophers (Update Logic)
+|   Basic update logic 
+|   Partial order update logic 
+
+Each update logic should be assessed for safety and liveness properties. In the problem context, safety and liveness are specified in the following manner. 
+
+|   Safety Properties (i.e. specifies something bad does not happen): 
+|      Each process Phil[i] will eventually advance to a new state (absence of deadlock). 
+|
+|   Liveness (i.e. prove that something good happens infinitely often): 
+|      Each process Phil[i] will transition between a thinking state and an eating state infinitely often. 
+
+Below, each update logic is formulated, and model checking results are presented alongside simulation outputs in order to evaluate safety and liveness properties.
+
+a) Basic update logic
+
+In the basic update logic, each process Phil[i] is allowed to pick up zero or one fork during each cycle of the update logic. If process Phil[i] owns zero or one fork, it is said to the in a "thinking" state, and if process Phil[i] owns two forks then it is said to be in an "eating" state. If Phil[i] transitions from owning one fork to owning two forks, then the next round of the update logic will relinquish ownership of both forks. The process logic is deterministic, and is described in terms of transitions. Given a process in a given state, the following transitions are possible:
+
+  Basic logic transition table
+  |   0-0 transition: ( Phil[i] is holding no forks ) AND ( both forks are owned by Phil[L] and Phil[R] ) -> pass;
+  |   0-1 transition: ( Phil[i] is holding no forks ) AND ( both forks are unowned ) -> acquire Fork[i] OR acquire Fork[L];
+  |   0-1 transition: ( Phil[i] is holding no forks ) AND ( Fork[i] is available ) -> acquire Fork[i];
+  |   0-1 transition: ( Phil[i] is holding no forks ) AND ( Fork[L] is available ) -> acquire Fork[L];
+  |   1-1 transition: ( Phil[i] is holding Fork[L] ) AND ( Fork[i] is unavailable) -> pass;  
+  |   1-1 transition: ( Phil[i] is holding Fork[i] ) AND ( Fork[L] is unavailable) -> pass;
+  |   1-2 transition: ( Phil[i] is holding Fork[L] ) AND ( Fork[i] is available ) -> acquire Fork[i];
+  |   1-2 transition: ( Phil[i] is holding Fork[i] ) AND ( Fork[L] is available ) -> acquire Fork[L];
+  |   2-0 transition: ( Phil[i] is holding Fork[i] ) AND ( Phil[i] is holding Fork[L] ) -> release Fork[L]; release Fork[i];
+
+
+In the case of the basic update logic, simulations shows that a state of deadlock will always be reached. This can occur when each Phil[i] acquires his own fork. In this case the only allowed transitions for any given process Phil[i] are (1 -> 1) transitions, and the process flow deadlock in the following state. This is demonstrated by the following output from the simulation debugger.
+
+              9: Philosopher (1) is thinking with fork (1) -> Cannot acquire fork
+              Forks = {
+              0, 
+              1, 
+              2, 
+              3, 
+              }
+              Deadlock = 1
+                  9: Philosopher (2) is thinking with fork (2) -> Cannot acquire fork
+                  Forks = {
+                  0, 
+                  1, 
+                  2, 
+                  3, 
+                  }
+                  Deadlock = 1
+          9: Philosopher (0) is thinking with fork (0) -> Cannot acquire fork
+          Forks = {
+          0, 
+          1, 
+          2, 
+          3, 
+          }
+          Deadlock = 1
+                      9: Philosopher (3) is thinking with fork (3) -> Cannot acquire fork
+                      Forks = {
+                      0, 
+                      1, 
+                      2, 
+                      3, 
+                      }
+                      Deadlock = 1
+
+In the above state no process can advance because only (1 -> 1) transitions are allowed forever. A similar situation occurs when each Phil[i] acquires the fork to his left neighbors fork, leading to an analogous state of deadlock. 
+
+          9: Philosopher (0) is thinking with fork (3) -> Cannot acquire fork
+          Forks = {
+          1, 
+          2, 
+          3, 
+          0, 
+          }
+          Deadlock = 1
+                      8: Philosopher (3) is thinking with fork (2) -> Cannot acquire fork
+                      Forks = {
+                      1, 
+                      2, 
+                      3, 
+                      0, 
+                      }
+                      Deadlock = 1
+                  9: Philosopher (2) is thinking with fork (1) -> Cannot acquire fork
+                  Forks = {
+                  1, 
+                  2, 
+                  3, 
+                  0, 
+                  }
+                  Deadlock = 1
+                      9: Philosopher (3) is thinking with fork (2) -> Cannot acquire fork
+                      Forks = {
+                      1, 
+                      2, 
+                      3, 
+                      0, 
+                      } 
+                      Deadlock = 1
+
+
+Intuitively, one can imagine that there are program traces that lead to either of these deadlock states. However, proving that the basic update logic will always lead to the deadlock state is a different manner. In order to show this, a global variable "deadlock" is evaluated against the program state in such a way that (deadlock = 1) if all processes own their own fork OR if all processes hold the fork of their left neighbor and (deadlock = 0) otherwise. This allows for the evaluation of linear temporal logic (ltl) against value of the deadlock variable. The following ltl formula states that eventually deadlock will always be true. 
+
+  ltl alwaysDeadlock { <>[] deadlock }
+
+Evaluating this ltl formula for ModelChecking/Philosophers_Deadlock.pml produces the following output.
+
+  (Spin Version 6.5.1 -- 31 July 2020)
+    + Partial Order Reduction
+
+  Full statespace search for:
+    never claim           + (alwaysDeadlock)
+    assertion violations  + (if within scope of claim)
+    acceptance   cycles   - (not selected)
+    invalid end states  - (disabled by never claim)
+
+  State-vector 176 byte, depth reached 6041, errors: 0
+       2129 states, stored
+      10992 states, matched
+      13121 transitions (= stored+matched)
+     222032 atomic steps
+  hash conflicts:         0 (resolved)
+
+  Stats on memory usage (in Megabytes):
+      0.414 equivalent memory usage for states (stored*(State-vector + overhead))
+      0.669 actual memory usage for states
+    128.000 memory used for hash table (-w24)
+      0.534 memory used for DFS stack (-m10000)
+    129.120 total actual memory usage
+
+In this case, spin provides zero errors indicating that ModelChecking/Philosophers_Deadlock.pml will always reach one of the two deadlock states described above.
+
+  Forks = [0,1,2,3] OR Forks = [1,2,3,0]
+
+This indicates that the basic update logic presented will always arrive in a state of resource starvation, independent of the number of philosophers seated at the table. While we cannot verify this directly for all N, it can be illustrated by induction that if such a deadlock state is reachable by N processes that the same holds for N+1 processes. Such a proof argues by illustrating the case in which each philosopher picks up his own fork sequentially until all forks are occupied. 
+
+
+b) Partial order update logic
+
+In order to avoid the deadlocking problem that presents in the case of the basic update logic specified in the previous section, amendments to the basic update logic can be made. One such amendment which avoids a deadlock scenario presented by Dijkstra is known as "partial ordering". In this scenario, each process Phil[i] must acquire the lower numbered fork first. The "partial order" update logic is fully specified by the following transition table.
+
+  Partial order transition table
+  |   0-0 transition: ( Phil[i] is holding no forks ) AND ( both forks are owned by Phil[L] and Phil[R] ) -> pass;
+  |   0-1 transition: ( Phil[i] is holding no forks ) AND ( both forks are unowned ) -> ( i < L ? acquire Fork[i] : acquire Fork[L];)
+  |   0-1 transition: ( Phil[i] is holding no forks ) AND ( Fork[i] is available ) -> ( i < L ? acquire Fork[i] : pass; )
+  |   0-1 transition: ( Phil[i] is holding no forks ) AND ( Fork[L] is available ) -> ( L < i ? acquire Fork[L] : pass; )
+  |   1-1 transition: ( Phil[i] is holding Fork[L] ) AND ( Fork[i] is unavailable) -> pass;  
+  |   1-1 transition: ( Phil[i] is holding Fork[i] ) AND ( Fork[L] is unavailable) -> pass;
+  |   1-2 transition: ( Phil[i] is holding Fork[L] ) AND ( Fork[i] is available ) -> acquire Fork[i];
+  |   1-2 transition: ( Phil[i] is holding Fork[i] ) AND ( Fork[L] is available ) -> acquire Fork[L];
+  |   2-0 transition: ( Phil[i] is holding Fork[i] ) AND ( Phil[i] is holding Fork[L] ) -> release Fork[L]; release Fork[i];
+
+In order to understand how this transition table avoids deadlock, consider the case where the first three processes acquire their forks in the following way
+
+  Phil[0] acquires Fork[0]
+    Phil[1] acquires Fork[1]
+      Phil[2] acquires Fork[2]
+
+This will lead to a state which looks as follows Forks = [0, 1, 2, -1]. However, partial ordering specifies that Phil[3] must acquire the lower numbered resource first which for him is Fork[0]. However, since Fork[0] is owned by Phil[0], Phil[3] must wait until Phil[0] released his fork. Given the state Forks = [0, 1, 2, -1], the only way state can be advanced is for Phil[0] to acquire Forks[3] and eat leading to Forks = [0, 1, 2, -1] => [0, 1, 2, 0] => [-1, 1, 2, -1]. By this analysis, it is clear that the transition into a deadlock state [0, 1, 2, 3] is not accessible via the update logic specified in the partial order transition table.
+
+In order to verify that the program execution does not deadlock, the following ltl formula for ModelChecking/Philosophers_PartialOrder_LTL.pml is model checked with the following result. 
+
+  ltl neverDeadlock { [] !deadlock }
+
+  (Spin Version 6.5.1 -- 31 July 2020)
+    + Partial Order Reduction
+
+  Full statespace search for:
+    never claim           + (neverDeadlock)
+    assertion violations  + (if within scope of claim)
+    acceptance   cycles   + (fairness enabled)
+    invalid end states  - (disabled by never claim)
+
+  State-vector 176 byte, depth reached 1352, errors: 0
+        662 states, stored
+       1478 states, matched
+       2140 transitions (= stored+matched)
+      30894 atomic steps
+  hash conflicts:         0 (resolved)
+
+  Stats on memory usage (in Megabytes):
+      0.129 equivalent memory usage for states (stored*(State-vector + overhead))
+      0.371 actual memory usage for states
+    128.000 memory used for hash table (-w24)
+      0.534 memory used for DFS stack (-m10000)
+    128.827 total actual memory usage
+
+Alternatively, the following LTL formula can be evaluated for the presence of an error.
+
+  ltl eventuallyDeadlock { <> deadlock }
+
+  (Spin Version 6.5.1 -- 31 July 2020)
+  Warning: Search not completed
+    + Partial Order Reduction
+
+  Full statespace search for:
+    never claim           + (eventuallyDeadlock)
+    assertion violations  + (if within scope of claim)
+    acceptance   cycles   + (fairness enabled)
+    invalid end states  - (disabled by never claim)
+
+  State-vector 176 byte, depth reached 4636, errors: 1
+        100 states, stored (319 visited)
+        459 states, matched
+        778 transitions (= visited+matched)
+      16443 atomic steps
+  hash conflicts:         0 (resolved)
+
+  Stats on memory usage (in Megabytes):
+      0.019 equivalent memory usage for states (stored*(State-vector + overhead))
+      0.274 actual memory usage for states
+    128.000 memory used for hash table (-w24)
+      0.534 memory used for DFS stack (-m10000)
+    128.730 total actual memory usage
+
+For the program ModelChecking/Philosophers_PartialOrder_LTL.pml, the evaluation of these ltl formulas provides definitive proof that a deadlock state will not be reached during program execution. However, liveness is more difficult to prove. An ideal strategy to model check liveness would to place a progress label at the point in update logic where a process Phil[i] is evaluated as having two forks. Such an ltl formula would take the following form:
+
+    ltl infinitelyOftenEating{ []<> Phil[i+1]@label }
+
+However, because the evaluation of state occurs within an atomic block, the progress label strategy cannot be employed. Another strategy is to formulate temporal reasoning about the ownership status of the fork in order to assess if a philosopher owns two forks infinitely often. If this is true, then a philosopher is eating infinitely often. This formulation model checks for the same condition as the progress label strategy and is straightforward to evaluate.
+
+    ltl infinitelyOftenOwned{ []<> (Forks[i] == i && Forks[L] == i) }
+
+In practice, it is only possible to check one PROMELA process at a time using this formulation. However, symmetry arguments suggest that a poof that one philosopher is eating infinitely often is sufficient to prove that all philosophers are eating infinitely often because the indexing is arbitrary. This argument also holds in the case of partial ordering, because the ltl formula looks for liveness in the (2 -> 0) transition, while partial ordering only affects (0 -> 1) transitions. For the specific case of Phil[1] the above ltl formula is with i = 1 which gives the following
+
+    ltl infinitelyOftenOwned{ []<> (Forks[1] == 1 && Forks[0] == 1) }
+
+When evaluating for liveness, it is important to invoke spin with weak fairness enabled. This forces the scheduler to hand over control to all processes eventually, as opposed to scheduling state the same process forever. When weak fairness is disabled, the following (trivial) trace involving one philosopher is sufficient to invalidate the ltl formula of interest.
+
+                      Initialized philosopher (3) with neighbors (2, 0)
+                  Initialized philosopher (2) with neighbors (1, 3)
+              Initialized philosopher (1) with neighbors (0, 2)
+          Initialized philosopher (0) with neighbors (3, 1)
+                      Philosopher (3) is thinking with NO forks -> Acquires fork (2)
+                      Forks = {
+                      -1, 
+                      -1, 
+                      3, 
+                      -1, 
+                      }
+                      Deadlock = 0
+      <<<<<START OF CYCLE>>>>>
+                      Philosopher (3) is thinking with fork (2) -> Acquires fork (3)
+                      Forks = {
+                      -1, 
+                      -1, 
+                      3, 
+                      3, 
+                      }
+                      Deadlock = 0
+                      Philosopher (3) is eating with forks (3, 2) -> Releases Forks (3, 2)
+                      Forks = {
+                      -1, 
+                      -1, 
+                      -1, 
+                      -1, 
+                      }
+                      Deadlock = 0
+                      Philosopher (3) is thinking with NO forks -> Acquires fork (2)
+                      Forks = {
+                      -1, 
+                      -1, 
+                      3, 
+                      -1, 
+                      }
+                      Deadlock = 0
+
+Invoking spin with acceptance cycles (-a) weak fairness (-f), the evaluation of ModelChecking/Philosophers_PartialOrder_LTL.pml produces the following result:
+
+      spin -a Philosophers_PartialOrder_LTL.pml
+      gcc -o pan pan.c
+      ./pan -a -f -N infinitelyOftenOwned
+
+      Note: alternatively spin can be invoked via:
+        spin -search -ltl infinitelyOftenOwned -f Philosophers_PartialOrder_LTL.pml
+
+    (Spin Version 6.5.1 -- 31 July 2020)
+    Warning: Search not completed
+      + Partial Order Reduction
+
+    Full statespace search for:
+      never claim           + (infinitelyOftenOwned)
+      assertion violations  + (if within scope of claim)
+      acceptance   cycles   + (fairness enabled)
+      invalid end states  - (disabled by never claim)
+
+    State-vector 176 byte, depth reached 1384, errors: 1
+           81 states, stored (129 visited)
+          103 states, matched
+          232 transitions (= visited+matched)
+         4278 atomic steps
+    hash conflicts:         0 (resolved)
+
+    Stats on memory usage (in Megabytes):
+        0.016 equivalent memory usage for states (stored*(State-vector + overhead))
+        0.274 actual memory usage for states
+      128.000 memory used for hash table (-w24)
+        0.534 memory used for DFS stack (-m10000)
+      128.730 total actual memory usage
+
+Here, spin reports an error when evaluating our ltl formula. In order to gain greater insight, it is useful to examine the trace of the error.
+
+  spin -t Philosophers_PartialOrder_LTL.pml
+
+The trace below demonstrate a cycle in which all four philosophers participate in decision logic, but only a subset of philosophers are eating thus demonstrating a condition of livelock. In the trace below, we see a condition in which Phil[1] does not reach an eating state (recall our ltl formula).
+
+    ltl infinitelyOftenOwned{ []<> (Forks[1] == 1 && Forks[0] == 1) }
+
+Examining the first step of the cycle, we find that the cycle begins with Phil[3] picking up Forks[2]. However, in this state, a valid transition also exists in which Phil[1] picks up Forks[1] effectively placing him in the "eating state". In other words, a valid transition to the "eating" state always exists for Phil[1], which would break the cycle but weak fairness is not enough to ensure that the scheduler enters that transition. The same issue occurs when one tries to verify that access to the "eating" state always exists via similar ltl. 
+
+    ltl infinitelyOftenAccess{ []<> (Forks[1] == -1 && Forks[0] == 1) }
+
+Analysis with spin suggests that in all cases, weak fairness is not enough to guarantee that a given process will always enter an eating state. However, model checking suggests that scheduling with strong fairness would ensure that the Philosophers_PartialOrder_LTL.pml would always satisfy the specified ltl. 
+
+  ltl infinitelyOftenOwned{ []<> (Forks[1] == 1 && Forks[0] == 1) }
+  ...
+  <<<<<START OF CYCLE>>>>>
+                  Philosopher (3) is thinking with NO forks -> Acquires fork (2)
+                  Forks = {
+                  1, 
+                  -1, 
+                  3, 
+                  -1, 
+                  }
+                  Deadlock = 0
+                  Philosopher (3) is thinking with fork (2) -> Acquires fork (3)
+                  Forks = {
+                  1, 
+                  -1, 
+                  3, 
+                  3, 
+                  }
+                  Deadlock = 0
+                  Philosopher (3) is eating with forks (3, 2) -> Releases Forks (3, 2)
+                  Forks = {
+                  1, 
+                  -1, 
+                  -1, 
+                  -1, 
+                  }
+                  Deadlock = 0
+              Philosopher (2) is thinking with NO forks -> Acquires fork (1)
+              Forks = {
+              1, 
+              2, 
+              -1, 
+              -1, 
+              }
+              Deadlock = 0
+                  Philosopher (3) is thinking with NO forks -> Acquires fork (2)
+                  Forks = {
+                  1, 
+                  2, 
+                  3, 
+                  -1, 
+                  }
+                  Deadlock = 0
+                  Philosopher (3) is thinking with fork (2) -> Acquires fork (3)
+                  Forks = {
+                  1, 
+                  2, 
+                  3, 
+                  3, 
+                  }
+                  Deadlock = 0
+          Philosopher (1) is thinking with fork (0) -> Cannot acquire fork
+          Forks = {
+          1, 
+          2, 
+          3, 
+          3, 
+          }
+          Deadlock = 0
+                  Philosopher (3) is eating with forks (3, 2) -> Releases Forks (3, 2)
+                  Forks = {
+                  1, 
+                  2, 
+                  -1, 
+                  -1, 
+                  }
+                  Deadlock = 0
+                  Philosopher (3) is thinking with NO forks -> Acquires fork (2)
+                  Forks = {
+                  1, 
+                  2, 
+                  3, 
+                  -1, 
+                  }
+                  Deadlock = 0
+      Philosopher (0) is thinking with NO forks -> Cannot acquire fork
+      Forks = {
+      1, 
+      2, 
+      3, 
+      -1, 
+      }
+      Deadlock = 0
+                  Philosopher (3) is thinking with fork (2) -> Acquires fork (3)
+                  Forks = {
+                  1, 
+                  2, 
+                  3, 
+                  3, 
+                  }
+                  Deadlock = 0
+                  Philosopher (3) is eating with forks (3, 2) -> Releases Forks (3, 2)
+                  Forks = {
+                  1, 
+                  2, 
+                  -1, 
+                  -1, 
+                  }
+                  Deadlock = 0
+              Philosopher (2) is thinking with fork (1) -> Acquires fork (2)
+              Forks = {
+              1, 
+              2, 
+              2, 
+              -1, 
+              }
+              Deadlock = 0
+              Philosopher (2) is eating with forks (2, 1) -> Releases Forks (2, 1)
+              Forks = {
+              1, 
+              -1, 
+              -1, 
+              -1, 
+              }
+              Deadlock = 0
+                  Philosopher (3) is thinking with NO forks -> Acquires fork (2)
+                  Forks = {
+                  1, 
+                  -1, 
+                  3, 
+                  -1, 
+                  }
+                  Deadlock = 0
+                  Philosopher (3) is thinking with fork (2) -> Acquires fork (3)
+                  Forks = {
+                  1, 
+                  -1, 
+                  3, 
+                  3, 
+                  }
+                  Deadlock = 0
+                  Philosopher (3) is eating with forks (3, 2) -> Releases Forks (3, 2)
+                  Forks = {
+                  1, 
+                  -1, 
+                  -1, 
+                  -1, 
+                  Deadlock = 0
+
+
+Conclusion: 
+
+In this exercise, two models were made in order to explore model checking and resource starvation in the context of the dining philosophers problem. In the case of the first model (Philosophers_Deadlock.pml), model checking showed that the global state ALWAYS deadlocks. In order to avoid deadlocking, a partial ordering scheme was introduced around resource allocation (Philosophers_PartialOrder_LTL.pml), and the model checking results are evaluated against the context of scheduling fairness.
+
+  Scheduling Fairness
+  |   Weak: The process scheduler will *eventually* give control to every non-blocking process (easier: implemented in spin)
+  |   Strong: The process scheduler must schedule a path of execution if it exists in the model checking graph (difficult: not implemented in spin)
+
+However, with partial ordering or resources, model checking demonstrated the existence of livelocking acceptance cycles in which all processes participate but a scheduling loop exists in which a certain process does not have access to resources. In this condition, the scheduler gives control to each non-blocking process as required by weak fairness, but this is not sufficient to demonstrate that a process WILL eventually access a given state even if it CAN access that state via an alternative scheduling. Such a condition describes resource starvation by livelock, whereby weak fairness is not enough to guarantee that a given process will gain access a shared resource. One could argue that strong fairness is required in order to provide such a guarantee, but strong fairness is much more difficult to implement.
+
+In order to solve the problem one must update the logic in order to avoid livelocking. A simple way to do this is to introduce a modified logic whereby each philosopher can only acquire two forks at a time. In this case, one would need to evaluate the intuitive resource starvation condition in which two philosophers are eating while the other two are thinking forever. 
+
+Model checking highlights how unintuitive behavior can arise in seemingly simply program situations. In this exercise, many essential model checking concepts are covered including structuring a model, defining and protecting a critical section, evaluating shared resources, and defining temporal logic invariants. The models also provide insights into the meaning of safety and liveness in computer systems.
+  
+  Safety and Liveness Properties
+  |   Safety: the program behaves in such a way that something bad will never happen (e.g. global state never deadlocks)
+  |   Liveness: the program behaves in such a way that something good will happen infinitely often (e.g. a process will always eventually access a resource)
+
+Generally, safety properties are easier to verify than liveness properties due to the fact that they are "less infinite". Also, the models developed in this exercise provide valuable insight into essential model checking concepts such as weak fairness and strong fairness, which are especially important when evaluating liveness properties of a given system.
