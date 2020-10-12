@@ -5,4 +5,8 @@ pan*
 *.trail
 
 # Extras
-Report_Philosophers.txt
+# Report_Philosophers.txt
+debug.txt
+
+# Other files to exclude
+Philosophers_Passing_Sim.pml
