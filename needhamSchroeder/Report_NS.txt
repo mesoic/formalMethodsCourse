@@ -1,0 +1,90 @@
+
+pan:1: acceptance cycle (at depth 25)
+pan: wrote needhamSchroeder3.pml.trail
+
+(Spin Version 6.5.1 -- 31 July 2020)
+Warning: Search not completed
+
+Full statespace search for:
+	never claim         	+ (eventuallyOk)
+	assertion violations	+ (if within scope of claim)
+	acceptance   cycles 	+ (fairness enabled)
+	invalid end states	- (disabled by never claim)
+
+State-vector 76 byte, depth reached 35, errors: 1
+      354 states, stored (1512 visited)
+     2101 states, matched
+     3613 transitions (= visited+matched)
+        0 atomic steps
+hash conflicts:         0 (resolved)
+
+Stats on memory usage (in Megabytes):
+    0.035	equivalent memory usage for states (stored*(State-vector + overhead))
+    0.284	actual memory usage for states
+  128.000	memory used for hash table (-w24)
+    0.534	memory used for DFS stack (-m10000)
+  128.730	total actual memory usage
+
+
+ltl eventuallyOk: <> (((statusA==ok)) && ((statusB==ok)))
+Never claim moves to line 4	[(!(((statusA==ok)&&(statusB==ok))))]
+      <<<<<START OF CYCLE>>>>>
+spin: trail ends after 26 steps
+#processes: 3
+		partnerA = agentB
+		partnerB = agentA
+		statusA = err
+		statusB = err
+ 26:	proc  2 (Intruder:1) needhamSchroeder3.pml:196 (state 34)
+ 26:	proc  1 (Bob:1) needhamSchroeder3.pml:122 (state 4)
+ 26:	proc  0 (Alice:1) needhamSchroeder3.pml:82 (state 6)
+ 26:	proc  - (eventuallyOk:1) _spin_nvr.tmp:3 (state 3)
+3 processes created
+
+Rendezvous communication is binary: only two processes, a sender and a receiver, can meet in a rendezvous handshake. In this case, Alice has sent her message, and the intruder recieves the message instead of Bob. Since Bob has not recieved a message yet, his process blocks. The intruder then sends a message which is recieved by Bob. Because the message data does not match what we expect from Alice, Bob's validation check fails. The intruder can keep replaying the same (blocking) message, such that Bob's state can never advance beyond the validation check. Further, since Alice is waiting for a message from Bob and Bob has blocked, Alice's will also block leading to a deadlock condition.
+
+(Alice)	
+|> 	network ! msg1 (partnerA, messageAB);
+|	network ? (msg2, agentA, data);
+
+
+(Bob)
+|	network ? (msg1, agentB, data)	
+|>	(data.key == keyB) && (data.content1 == agentA);
+
+
+(Intruder) 
+|>	network ! msg (recpt, data);
+
+
+
+ltl eventuallyOk: <> (((statusA==ok)) && ((statusB==ok)))
+      timeout
+#processes: 3
+		partnerA = agentB
+		partnerB = agentA
+		statusA = ok
+		statusB = ok
+ 33:	proc  2 (Intruder:1) needhamSchroeder3.pml:186 (state 34)
+ 33:	proc  1 (Bob:1) needhamSchroeder3.pml:142 (state 13) <valid end state>
+ 33:	proc  0 (Alice:1) needhamSchroeder3.pml:103 (state 15) <valid end state>
+3 processes created
+
+
+ltl alwaysErr: [] (((statusA==err)) || ((statusB==err)))
+ltl eventuallyOk: <> (((statusA==ok)) && ((statusB==ok)))
+Never claim moves to line 4	[(1)]
+spin: _spin_nvr.tmp:3, Error: assertion violated
+spin: text of failed assertion: assert(!(!(((statusA==err)||(statusB==err)))))
+Never claim moves to line 3	[assert(!(!(((statusA==err)||(statusB==err)))))]
+spin: trail ends after 34 steps
+#processes: 3
+		partnerA = agentB
+		partnerB = agentA
+		statusA = ok
+		statusB = ok
+ 34:	proc  2 (Intruder:1) needhamSchroeder3.pml:196 (state 34)
+ 34:	proc  1 (Bob:1) needhamSchroeder3.pml:142 (state 13) <valid end state>
+ 34:	proc  0 (Alice:1) needhamSchroeder3.pml:103 (state 15) <valid end state>
+ 34:	proc  - (alwaysErr:1) _spin_nvr.tmp:2 (state 6)
+3 processes created

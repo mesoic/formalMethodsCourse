@@ -1,4 +1,15 @@
 /**
+	Needham-Schroeder message passing protocol. 
+	|	msg1: 	agentA -> agentB	(keyB, agentA, nonceA)
+	|	msg2: 	agentB -> agentA	(keyA, nonceA, nonceB)
+	|	msg3: 	agentA -> agentB	(keyB, nonceB, 0)
+
+	Note that sending (keyB, agentA, nonceA) from agentA to agentB 
+	over the network (chan)nel models agentA encrypting the message 
+	"[agentA, nonceB]" with agentB's public key.
+*/
+
+/**
 	An mtype declaration allows for the introduction of symbolic names for constant values.
 	The declaration
 
@@ -13,18 +24,26 @@
 	    #define msg3	1
 */
 mtype = {
+	/* Status Codes */
 	ok, 
 	err, 
+
+	/* Message Codes */
 	msg1, 
 	msg2, 
 	msg3, 
-	keyA, 
-	keyB, 
+
+	/*	Agent (A)lice */
+	keyA,
 	agentA, 
+	nonceA,
+
+	/*	Agent (B)ob */
+	keyB, 
 	agentB,
-	nonceA, 
-	nonceB 
+	nonceB
 };
+
 
 /**
 	typedef - declare a structured data type to model our encrypted messages.
@@ -35,11 +54,13 @@ typedef Crypt {
 	content2 
 };
 
+
 /**
 	Model network between agents via a rendezvous channel. 
 	Send and recieve operations are performed synchronously. 
 */
 chan network = [0] of {mtype, mtype, Crypt};
+
 
 /* global variables for verification*/
 mtype partnerA; 
@@ -47,16 +68,6 @@ mtype partnerB;
 mtype statusA = err;
 mtype statusB = err;
 
-/**
-	Needham-Schroeder message passing protocol. 
-	|	msg1: 	agentA -> agentB	(keyB, agentA, nonceA)
-	|	msg2: 	agentB -> agentA	(keyA, nonceA, nonceB)
-	|	msg3: 	agentA -> agentB	(keyB, nonceB, 0)
-
-	Note that sending (keyB, agentA, nonceA) from agentA to agentB 
-	over the network (chan)nel models agentA encrypting the message 
-	"[agentA, nonceB]" with agentB's public key.
-*/
 
 /* Agent (A)lice */
 active proctype Alice() {
