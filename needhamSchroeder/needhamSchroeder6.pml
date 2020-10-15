@@ -58,7 +58,8 @@ mtype partnerA;
 mtype partnerB;
 mtype statusA = err;
 mtype statusB = err;
-
+bool knows_nonceA; 
+bool knows_nonceB;
 
 /* Agent (A)lice */
 active proctype Alice() {
@@ -69,9 +70,14 @@ active proctype Alice() {
 	Crypt messageAB;	/* sent messages			 */
 	Crypt data;			/* recieved messages	 */
 
-	/* Initialization */
-	partnerA = agentB;
-	pkey	 = keyB;
+	/* 
+		Initialization: In this example we non-deterministically choose between 
+		agents (B)ob and (I)ntruder
+	*/
+	if 
+	:: partnerA = agentB; pkey = keyB;
+	:: partnerA = agentI; pkey = keyI;
+	fi
 
 	/* prepare (msg1) */
 	messageAB.key = pkey;
@@ -147,6 +153,10 @@ active proctype Intruder() {
 	mtype msg, recpt;
 	Crypt data, intercepted;
 
+	/* Initialize knows_nonce variables to false */
+	knows_nonceA = false;
+	knows_nonceB = false;
+
 	do
 	:: network ? (msg, _, data) -> 
 	if /* perhaps store the message */
@@ -155,6 +165,25 @@ active proctype Intruder() {
 			intercepted.content1 = data.content1;
 			intercepted.content2 = data.content2;
 			
+			/*	
+				Message contains (I)ntruder's (public) key, the intruder can 
+				decrypt the message. Note that we can learn nonce values from 
+				either content1 or content2
+				|	msg1:	(keyB, agentA, nonceA)
+				|	msg2:	(keyA, nonceA, nonceB)
+				|	msg3: 	(keyB, nonceB, 0)
+			*/
+			if 
+			::  (intercepted.key == keyI) -> if 
+				:: intercepted.content1 == nonceA -> knows_nonceA = true; 
+				:: intercepted.content1 == nonceB -> knows_nonceB = true; 
+				:: intercepted.content2 == nonceA -> knows_nonceA = true; 
+				:: intercepted.content2 == nonceB -> knows_nonceB = true; 
+				fi 
+
+			:: skip;
+			fi 
+
 		:: skip;
 	fi;
 
@@ -180,7 +209,9 @@ active proctype Intruder() {
 			:: data.content1 = agentA;
 			:: data.content1 = agentB;
 			:: data.content1 = agentI;
-			:: data.content1 = nonceI;
+			:: (knows_nonceA) -> data.content1 = nonceA
+			:: (knows_nonceB) -> data.content1 = nonceB
+			:: (!knows_nonceA && !knows_nonceB) -> data.content1 = nonceI;
 		fi;
 		
 		if /* assemble key */
@@ -189,7 +220,11 @@ active proctype Intruder() {
 			:: data.key = keyI;
 		fi;
 		
-		data.content2 = nonceI;
+		if 
+		:: (knows_nonceA) -> data.content2 = nonceA
+		:: (knows_nonceB) -> data.content2 = nonceB
+		:: (!knows_nonceA && !knows_nonceB) -> data.content2 = nonceI;
+		fi 
 		
 	fi;
 
@@ -197,6 +232,30 @@ active proctype Intruder() {
 	od
 }
 
+/**
+	Always, one process will terminate in error
+*/
 ltl alwaysErr { [] ( (statusA == err) || (statusB == err) ) }
 
+/**
+	Eventually the protocol will complete without error
+*/
 ltl eventuallyOk { <> ( (statusA == ok) && (statusB == ok) ) }
+
+/*
+	propAB: If both Alice and Bob reach the end of their runs (i.e. both statusA and statusB are ok) 
+	then Alice's communication partner is Bob, and Bob's communication partner is Alice.
+*/
+ltl propAB { [] ( ( (statusA == ok) && (statusB == ok) ) -> ( (partnerB == agentA) && (partnerA == agentB) ) ) }
+
+/*
+	propA: If agent A reaches the end of its run (statusA is ok) and A believes it is talking to B 
+	(partnerA is agentB) then the intruder does not know A's nonce (!knows_nonceA).
+*/
+ltl propA { [] ( ( (statusA == ok)  && (partnerA == agentB) ) ->  ( knows_nonceA == false ) ) }
+
+/*
+	propB: If agent B reaches the end of its run (statusB is ok) and it believes it is talking to A 
+	(partnerB is agentA) then the intruder does not know B's nonce (!knows_nonceB)
+*/
+ltl propB { [] ( ( (statusB == ok)  && (partnerB == agentA) ) ->  ( knows_nonceB == false ) ) }

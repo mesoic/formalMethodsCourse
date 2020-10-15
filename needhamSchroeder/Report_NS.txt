@@ -88,3 +88,321 @@ spin: trail ends after 34 steps
  34:	proc  0 (Alice:1) needhamSchroeder3.pml:103 (state 15) <valid end state>
  34:	proc  - (alwaysErr:1) _spin_nvr.tmp:2 (state 6)
 3 processes created
+
+
+needhamSchroeder6)
+
+
+
+/*
+	If both Alice and Bob reach the end of their runs (i.e. both statusA and statusB are ok) 
+	then Alice's communication partner is Bob, and Bob's communication partner is Alice.
+*/
+ltl propAB{ [] ( ( (statusA == ok) && (statusB == ok) ) -> ( (partnerB == agentA) && (partnerA == agentB) ) ) }
+
+
+pan: ltl formula propAB
+Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.55 R=   6e+05
+pan:1: assertion violated  !( !(( !(((statusA==14)&&(statusB==14)))||((partnerB==8)&&(partnerA==5))))) (at depth 98)
+pan: wrote needhamSchroeder6.pml.trail
+
+(Spin Version 6.5.1 -- 31 July 2020)
+Warning: Search not completed
+
+Full statespace search for:
+	never claim         	+ (propAB)
+	assertion violations	+ (if within scope of claim)
+	acceptance   cycles 	+ (fairness enabled)
+	invalid end states	- (disabled by never claim)
+
+State-vector 84 byte, depth reached 112, errors: 1
+  1526579 states, stored
+   761201 states, matched
+  2287780 transitions (= stored+matched)
+        0 atomic steps
+hash conflicts:     21388 (resolved)
+
+Stats on memory usage (in Megabytes):
+  163.056	equivalent memory usage for states (stored*(State-vector + overhead))
+  128.470	actual memory usage for states (compression: 78.79%)
+         	state-vector as stored = 60 byte + 28 byte overhead
+  128.000	memory used for hash table (-w24)
+    0.534	memory used for DFS stack (-m10000)
+  256.855	total actual memory usage
+
+
+
+#processes: 3
+		partnerA = agentI
+		partnerB = agentA
+		statusA = ok
+		statusB = ok
+		knows_nonceA = 1
+		knows_nonceB = 1
+ 99:	proc  2 (Intruder:1) needhamSchroeder6.pml:231 (state 62)
+ 99:	proc  1 (Bob:1) needhamSchroeder6.pml:148 (state 13) <valid end state>
+ 99:	proc  0 (Alice:1) needhamSchroeder6.pml:109 (state 19) <valid end state>
+ 99:	proc  - (propAB:1) _spin_nvr.tmp:18 (state 6)
+3 processes created
+
+
+
+
+/*
+	propA: If agent A reaches the end of its run (statusA is ok) and A believes it is talking to B 
+	(partnerA is agentB) then the intruder does not know A's nonce (!knows_nonceA).
+*/
+ltl propA { [] ( ( (statusA == ok)  && (partnerA == agentB) ) ->  ( knows_nonceA == false ) ) }
+
+
+pan: ltl formula propA
+Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.52 R=   7e+05
+
+(Spin Version 6.5.1 -- 31 July 2020)
+
+Full statespace search for:
+	never claim         	+ (propA)
+	assertion violations	+ (if within scope of claim)
+	acceptance   cycles 	+ (fairness enabled)
+	invalid end states	- (disabled by never claim)
+
+State-vector 84 byte, depth reached 112, errors: 0
+  1715638 states, stored
+   925477 states, matched
+  2641115 transitions (= stored+matched)
+        0 atomic steps
+hash conflicts:     22335 (resolved)
+
+Stats on memory usage (in Megabytes):
+  183.250	equivalent memory usage for states (stored*(State-vector + overhead))
+  144.397	actual memory usage for states (compression: 78.80%)
+         	state-vector as stored = 60 byte + 28 byte overhead
+  128.000	memory used for hash table (-w24)
+    0.534	memory used for DFS stack (-m10000)
+  272.772	total actual memory usage
+
+
+unreached in proctype Alice
+	(0 of 19 states)
+unreached in proctype Bob
+	(0 of 13 states)
+unreached in proctype Intruder
+	needhamSchroeder6.pml:181, state 15, "knows_nonceB = 1"
+	needhamSchroeder6.pml:233, state 66, "-end-"
+	(2 of 66 states)
+unreached in claim propA
+	_spin_nvr.tmp:33, state 10, "-end-"
+	(1 of 10 states)
+
+pan: elapsed time 2.78 seconds
+pan: rate 617135.97 states/second
+
+
+
+
+
+/*
+	propB: If agent B reaches the end of its run (statusB is ok) and it believes it is talking to A 
+	(partnerB is agentA) then the intruder does not know B's nonce (!knows_nonceB)
+*/
+ltl propB { [] ( ( (statusB == ok)  && (partnerB == agentA) ) ->  ( knows_nonceB == false ) ) }
+
+pan: ltl formula propB
+Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.49 R=   7e+05
+pan:1: assertion violated  !( !(( !(((statusB==14)&&(partnerB==8)))||(knows_nonceB==0)))) (at depth 96)
+pan: wrote needhamSchroeder6.pml.trail
+
+(Spin Version 6.5.1 -- 31 July 2020)
+Warning: Search not completed
+
+Full statespace search for:
+	never claim         	+ (propB)
+	assertion violations	+ (if within scope of claim)
+	acceptance   cycles 	+ (fairness enabled)
+	invalid end states	- (disabled by never claim)
+
+State-vector 84 byte, depth reached 112, errors: 1
+  1526578 states, stored
+   761201 states, matched
+  2287779 transitions (= stored+matched)
+        0 atomic steps
+hash conflicts:     16349 (resolved)
+
+Stats on memory usage (in Megabytes):
+  163.056	equivalent memory usage for states (stored*(State-vector + overhead))
+  128.470	actual memory usage for states (compression: 78.79%)
+         	state-vector as stored = 60 byte + 28 byte overhead
+  128.000	memory used for hash table (-w24)
+    0.534	memory used for DFS stack (-m10000)
+  256.855	total actual memory usage
+
+#processes: 3
+		partnerA = agentI
+		partnerB = agentA
+		statusA = err
+		statusB = ok
+		knows_nonceA = 1
+		knows_nonceB = 1
+ 97:	proc  2 (Intruder:1) needhamSchroeder6.pml:231 (state 62)
+ 97:	proc  1 (Bob:1) needhamSchroeder6.pml:148 (state 13) <valid end state>
+ 97:	proc  0 (Alice:1) needhamSchroeder6.pml:108 (state 18)
+ 97:	proc  - (propB:1) _spin_nvr.tmp:36 (state 6)
+3 processes created
+
+
+
+
+
+
+
+pan: ltl formula propA
+Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=     1.51 R=   7e+05
+Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.07 R=   7e+05
+
+(Spin Version 6.5.1 -- 31 July 2020)
+
+Full statespace search for:
+	never claim         	+ (propA)
+	assertion violations	+ (if within scope of claim)
+	acceptance   cycles 	+ (fairness enabled)
+	invalid end states	- (disabled by never claim)
+
+State-vector 88 byte, depth reached 128, errors: 0
+  2697572 states, stored
+  1113386 states, matched
+  3810958 transitions (= stored+matched)
+        0 atomic steps
+hash conflicts:     45937 (resolved)
+
+Stats on memory usage (in Megabytes):
+  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
+  247.498	actual memory usage for states (compression: 82.94%)
+         	state-vector as stored = 68 byte + 28 byte overhead
+  128.000	memory used for hash table (-w24)
+    0.534	memory used for DFS stack (-m10000)
+  375.800	total actual memory usage
+
+
+unreached in proctype Alice
+	(0 of 21 states)
+unreached in proctype Bob
+	(0 of 14 states)
+unreached in proctype Intruder
+	needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
+	needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
+	needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
+	needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
+	needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
+	needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
+	needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
+	needhamSchroeder7.pml:247, state 79, "-end-"
+	(8 of 79 states)
+unreached in claim propA
+	_spin_nvr.tmp:33, state 10, "-end-"
+	(1 of 10 states)
+
+pan: elapsed time 4.31 seconds
+pan: rate 625886.77 states/second
+
+
+
+pan: ltl formula propB
+Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=     1.56 R=   6e+05
+Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.21 R=   6e+05
+
+(Spin Version 6.5.1 -- 31 July 2020)
+
+Full statespace search for:
+	never claim         	+ (propB)
+	assertion violations	+ (if within scope of claim)
+	acceptance   cycles 	+ (fairness enabled)
+	invalid end states	- (disabled by never claim)
+
+State-vector 88 byte, depth reached 128, errors: 0
+  2697572 states, stored
+  1113386 states, matched
+  3810958 transitions (= stored+matched)
+        0 atomic steps
+hash conflicts:     45345 (resolved)
+
+Stats on memory usage (in Megabytes):
+  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
+  247.498	actual memory usage for states (compression: 82.94%)
+         	state-vector as stored = 68 byte + 28 byte overhead
+  128.000	memory used for hash table (-w24)
+    0.534	memory used for DFS stack (-m10000)
+  375.800	total actual memory usage
+
+
+unreached in proctype Alice
+	(0 of 21 states)
+unreached in proctype Bob
+	(0 of 14 states)
+unreached in proctype Intruder
+	needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
+	needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
+	needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
+	needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
+	needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
+	needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
+	needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
+	needhamSchroeder7.pml:247, state 79, "-end-"
+	(8 of 79 states)
+unreached in claim propB
+	_spin_nvr.tmp:42, state 10, "-end-"
+	(1 of 10 states)
+
+pan: elapsed time 4.53 seconds
+pan: rate 595490.51 states/second
+
+
+
+
+pan: ltl formula propAB
+Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=      1.5 R=   7e+05
+Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.05 R=   7e+05
+
+(Spin Version 6.5.1 -- 31 July 2020)
+
+Full statespace search for:
+	never claim         	+ (propAB)
+	assertion violations	+ (if within scope of claim)
+	acceptance   cycles 	+ (fairness enabled)
+	invalid end states	- (disabled by never claim)
+
+State-vector 88 byte, depth reached 128, errors: 0
+  2697572 states, stored
+  1113386 states, matched
+  3810958 transitions (= stored+matched)
+        0 atomic steps
+hash conflicts:     45527 (resolved)
+
+Stats on memory usage (in Megabytes):
+  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
+  247.498	actual memory usage for states (compression: 82.94%)
+         	state-vector as stored = 68 byte + 28 byte overhead
+  128.000	memory used for hash table (-w24)
+    0.534	memory used for DFS stack (-m10000)
+  375.800	total actual memory usage
+
+
+unreached in proctype Alice
+	(0 of 21 states)
+unreached in proctype Bob
+	(0 of 14 states)
+unreached in proctype Intruder
+	needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
+	needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
+	needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
+	needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
+	needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
+	needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
+	needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
+	needhamSchroeder7.pml:247, state 79, "-end-"
+	(8 of 79 states)
+unreached in claim propAB
+	_spin_nvr.tmp:24, state 10, "-end-"
+	(1 of 10 states)
+
+pan: elapsed time 4.26 seconds
+pan: rate 633232.86 states/second
