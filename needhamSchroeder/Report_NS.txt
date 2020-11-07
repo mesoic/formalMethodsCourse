@@ -1,408 +1,531 @@
+Introduction:
 
-pan:1: acceptance cycle (at depth 25)
-pan: wrote needhamSchroeder3.pml.trail
-
-(Spin Version 6.5.1 -- 31 July 2020)
-Warning: Search not completed
-
-Full statespace search for:
-	never claim         	+ (eventuallyOk)
-	assertion violations	+ (if within scope of claim)
-	acceptance   cycles 	+ (fairness enabled)
-	invalid end states	- (disabled by never claim)
-
-State-vector 76 byte, depth reached 35, errors: 1
-      354 states, stored (1512 visited)
-     2101 states, matched
-     3613 transitions (= visited+matched)
-        0 atomic steps
-hash conflicts:         0 (resolved)
-
-Stats on memory usage (in Megabytes):
-    0.035	equivalent memory usage for states (stored*(State-vector + overhead))
-    0.284	actual memory usage for states
-  128.000	memory used for hash table (-w24)
-    0.534	memory used for DFS stack (-m10000)
-  128.730	total actual memory usage
-
-
-ltl eventuallyOk: <> (((statusA==ok)) && ((statusB==ok)))
-Never claim moves to line 4	[(!(((statusA==ok)&&(statusB==ok))))]
-      <<<<<START OF CYCLE>>>>>
-spin: trail ends after 26 steps
-#processes: 3
-		partnerA = agentB
-		partnerB = agentA
-		statusA = err
-		statusB = err
- 26:	proc  2 (Intruder:1) needhamSchroeder3.pml:196 (state 34)
- 26:	proc  1 (Bob:1) needhamSchroeder3.pml:122 (state 4)
- 26:	proc  0 (Alice:1) needhamSchroeder3.pml:82 (state 6)
- 26:	proc  - (eventuallyOk:1) _spin_nvr.tmp:3 (state 3)
-3 processes created
-
-Rendezvous communication is binary: only two processes, a sender and a receiver, can meet in a rendezvous handshake. In this case, Alice has sent her message, and the intruder recieves the message instead of Bob. Since Bob has not recieved a message yet, his process blocks. The intruder then sends a message which is recieved by Bob. Because the message data does not match what we expect from Alice, Bob's validation check fails. The intruder can keep replaying the same (blocking) message, such that Bob's state can never advance beyond the validation check. Further, since Alice is waiting for a message from Bob and Bob has blocked, Alice's will also block leading to a deadlock condition.
-
-(Alice)	
-|> 	network ! msg1 (partnerA, messageAB);
-|	network ? (msg2, agentA, data);
-
-
-(Bob)
-|	network ? (msg1, agentB, data)	
-|>	(data.key == keyB) && (data.content1 == agentA);
-
-
-(Intruder) 
-|>	network ! msg (recpt, data);
-
-
-
-ltl eventuallyOk: <> (((statusA==ok)) && ((statusB==ok)))
-      timeout
-#processes: 3
-		partnerA = agentB
-		partnerB = agentA
-		statusA = ok
-		statusB = ok
- 33:	proc  2 (Intruder:1) needhamSchroeder3.pml:186 (state 34)
- 33:	proc  1 (Bob:1) needhamSchroeder3.pml:142 (state 13) <valid end state>
- 33:	proc  0 (Alice:1) needhamSchroeder3.pml:103 (state 15) <valid end state>
-3 processes created
-
-
-ltl alwaysErr: [] (((statusA==err)) || ((statusB==err)))
-ltl eventuallyOk: <> (((statusA==ok)) && ((statusB==ok)))
-Never claim moves to line 4	[(1)]
-spin: _spin_nvr.tmp:3, Error: assertion violated
-spin: text of failed assertion: assert(!(!(((statusA==err)||(statusB==err)))))
-Never claim moves to line 3	[assert(!(!(((statusA==err)||(statusB==err)))))]
-spin: trail ends after 34 steps
-#processes: 3
-		partnerA = agentB
-		partnerB = agentA
-		statusA = ok
-		statusB = ok
- 34:	proc  2 (Intruder:1) needhamSchroeder3.pml:196 (state 34)
- 34:	proc  1 (Bob:1) needhamSchroeder3.pml:142 (state 13) <valid end state>
- 34:	proc  0 (Alice:1) needhamSchroeder3.pml:103 (state 15) <valid end state>
- 34:	proc  - (alwaysErr:1) _spin_nvr.tmp:2 (state 6)
-3 processes created
-
-
-needhamSchroeder6)
-
-
-
-/*
-	If both Alice and Bob reach the end of their runs (i.e. both statusA and statusB are ok) 
-	then Alice's communication partner is Bob, and Bob's communication partner is Alice.
-*/
-ltl propAB{ [] ( ( (statusA == ok) && (statusB == ok) ) -> ( (partnerB == agentA) && (partnerA == agentB) ) ) }
-
+	The Needham-Schroder protocol is a protol which provides a secure messaging protocol between two parties (A)lice and (B)ob. The objective of this exercise is to elucidate a known vulnerability in the protocol, and to subsequently patch the protocol. In this exercise, the protocol will be analysed in four parts by buiding Promela models and performing analysis via spin. 
 
-pan: ltl formula propAB
-Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.55 R=   6e+05
-pan:1: assertion violated  !( !(( !(((statusA==14)&&(statusB==14)))||((partnerB==8)&&(partnerA==5))))) (at depth 98)
-pan: wrote needhamSchroeder6.pml.trail
+		(1) Modelling of encrypted message passing between two parties (A)lice and (B)ob (needhamSchroeder2.pml)
+		(2) Introduction of an unknown (I)ntruder which may freely interfere with communication (needhamSchroeder3.pml)
+		(3) Introdudtion of (I)ntruder which is known to (A)lice (needhamSchroeder6.pml)
+		(4) Patching the protocol and verify security properties (needhamSchroeder7.pml)
 
-(Spin Version 6.5.1 -- 31 July 2020)
-Warning: Search not completed
+	What follows is a brief description of the program structure, as well as formal verification of each of the above Promela models. 
 
-Full statespace search for:
-	never claim         	+ (propAB)
-	assertion violations	+ (if within scope of claim)
-	acceptance   cycles 	+ (fairness enabled)
-	invalid end states	- (disabled by never claim)
+Program structure: 
 
-State-vector 84 byte, depth reached 112, errors: 1
-  1526579 states, stored
-   761201 states, matched
-  2287780 transitions (= stored+matched)
-        0 atomic steps
-hash conflicts:     21388 (resolved)
+	In all cases, the message passing agents (A)lice, (B)ob, and (I)ntruder will be modelled as Promela processes, and different message properties and states are modelled using a Promela (mtype) data structre. Promela mtypes are simple structures which map a (string) to an (int). 
 
-Stats on memory usage (in Megabytes):
-  163.056	equivalent memory usage for states (stored*(State-vector + overhead))
-  128.470	actual memory usage for states (compression: 78.79%)
-         	state-vector as stored = 60 byte + 28 byte overhead
-  128.000	memory used for hash table (-w24)
-    0.534	memory used for DFS stack (-m10000)
-  256.855	total actual memory usage
-
-
-
-#processes: 3
-		partnerA = agentI
-		partnerB = agentA
-		statusA = ok
-		statusB = ok
-		knows_nonceA = 1
-		knows_nonceB = 1
- 99:	proc  2 (Intruder:1) needhamSchroeder6.pml:231 (state 62)
- 99:	proc  1 (Bob:1) needhamSchroeder6.pml:148 (state 13) <valid end state>
- 99:	proc  0 (Alice:1) needhamSchroeder6.pml:109 (state 19) <valid end state>
- 99:	proc  - (propAB:1) _spin_nvr.tmp:18 (state 6)
-3 processes created
-
-
-
-
-/*
-	propA: If agent A reaches the end of its run (statusA is ok) and A believes it is talking to B 
-	(partnerA is agentB) then the intruder does not know A's nonce (!knows_nonceA).
-*/
-ltl propA { [] ( ( (statusA == ok)  && (partnerA == agentB) ) ->  ( knows_nonceA == false ) ) }
-
+		mtype = {
+			/* Status Codes */
+			ok, 
+			err, 
 
-pan: ltl formula propA
-Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.52 R=   7e+05
+			/* Message Codes */
+			msg1, 
+			msg2, 
+			msg3, 
 
-(Spin Version 6.5.1 -- 31 July 2020)
+			/*	Agent (A)lice */
+			keyA,
+			agentA, 
+			nonceA,
 
-Full statespace search for:
-	never claim         	+ (propA)
-	assertion violations	+ (if within scope of claim)
-	acceptance   cycles 	+ (fairness enabled)
-	invalid end states	- (disabled by never claim)
+			/*	Agent (B)ob */
+			keyB, 
+			agentB,
+			nonceB,
 
-State-vector 84 byte, depth reached 112, errors: 0
-  1715638 states, stored
-   925477 states, matched
-  2641115 transitions (= stored+matched)
-        0 atomic steps
-hash conflicts:     22335 (resolved)
-
-Stats on memory usage (in Megabytes):
-  183.250	equivalent memory usage for states (stored*(State-vector + overhead))
-  144.397	actual memory usage for states (compression: 78.80%)
-         	state-vector as stored = 60 byte + 28 byte overhead
-  128.000	memory used for hash table (-w24)
-    0.534	memory used for DFS stack (-m10000)
-  272.772	total actual memory usage
-
-
-unreached in proctype Alice
-	(0 of 19 states)
-unreached in proctype Bob
-	(0 of 13 states)
-unreached in proctype Intruder
-	needhamSchroeder6.pml:181, state 15, "knows_nonceB = 1"
-	needhamSchroeder6.pml:233, state 66, "-end-"
-	(2 of 66 states)
-unreached in claim propA
-	_spin_nvr.tmp:33, state 10, "-end-"
-	(1 of 10 states)
-
-pan: elapsed time 2.78 seconds
-pan: rate 617135.97 states/second
-
-
-
-
-
-/*
-	propB: If agent B reaches the end of its run (statusB is ok) and it believes it is talking to A 
-	(partnerB is agentA) then the intruder does not know B's nonce (!knows_nonceB)
-*/
-ltl propB { [] ( ( (statusB == ok)  && (partnerB == agentA) ) ->  ( knows_nonceB == false ) ) }
-
-pan: ltl formula propB
-Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.49 R=   7e+05
-pan:1: assertion violated  !( !(( !(((statusB==14)&&(partnerB==8)))||(knows_nonceB==0)))) (at depth 96)
-pan: wrote needhamSchroeder6.pml.trail
-
-(Spin Version 6.5.1 -- 31 July 2020)
-Warning: Search not completed
-
-Full statespace search for:
-	never claim         	+ (propB)
-	assertion violations	+ (if within scope of claim)
-	acceptance   cycles 	+ (fairness enabled)
-	invalid end states	- (disabled by never claim)
-
-State-vector 84 byte, depth reached 112, errors: 1
-  1526578 states, stored
-   761201 states, matched
-  2287779 transitions (= stored+matched)
-        0 atomic steps
-hash conflicts:     16349 (resolved)
-
-Stats on memory usage (in Megabytes):
-  163.056	equivalent memory usage for states (stored*(State-vector + overhead))
-  128.470	actual memory usage for states (compression: 78.79%)
-         	state-vector as stored = 60 byte + 28 byte overhead
-  128.000	memory used for hash table (-w24)
-    0.534	memory used for DFS stack (-m10000)
-  256.855	total actual memory usage
-
-#processes: 3
-		partnerA = agentI
-		partnerB = agentA
-		statusA = err
-		statusB = ok
-		knows_nonceA = 1
-		knows_nonceB = 1
- 97:	proc  2 (Intruder:1) needhamSchroeder6.pml:231 (state 62)
- 97:	proc  1 (Bob:1) needhamSchroeder6.pml:148 (state 13) <valid end state>
- 97:	proc  0 (Alice:1) needhamSchroeder6.pml:108 (state 18)
- 97:	proc  - (propB:1) _spin_nvr.tmp:36 (state 6)
-3 processes created
-
-
-
-
-
-
-
-pan: ltl formula propA
-Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=     1.51 R=   7e+05
-Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.07 R=   7e+05
-
-(Spin Version 6.5.1 -- 31 July 2020)
-
-Full statespace search for:
-	never claim         	+ (propA)
-	assertion violations	+ (if within scope of claim)
-	acceptance   cycles 	+ (fairness enabled)
-	invalid end states	- (disabled by never claim)
-
-State-vector 88 byte, depth reached 128, errors: 0
-  2697572 states, stored
-  1113386 states, matched
-  3810958 transitions (= stored+matched)
-        0 atomic steps
-hash conflicts:     45937 (resolved)
-
-Stats on memory usage (in Megabytes):
-  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
-  247.498	actual memory usage for states (compression: 82.94%)
-         	state-vector as stored = 68 byte + 28 byte overhead
-  128.000	memory used for hash table (-w24)
-    0.534	memory used for DFS stack (-m10000)
-  375.800	total actual memory usage
-
-
-unreached in proctype Alice
-	(0 of 21 states)
-unreached in proctype Bob
-	(0 of 14 states)
-unreached in proctype Intruder
-	needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
-	needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
-	needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
-	needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
-	needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
-	needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
-	needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
-	needhamSchroeder7.pml:247, state 79, "-end-"
-	(8 of 79 states)
-unreached in claim propA
-	_spin_nvr.tmp:33, state 10, "-end-"
-	(1 of 10 states)
-
-pan: elapsed time 4.31 seconds
-pan: rate 625886.77 states/second
-
-
-
-pan: ltl formula propB
-Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=     1.56 R=   6e+05
-Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.21 R=   6e+05
-
-(Spin Version 6.5.1 -- 31 July 2020)
-
-Full statespace search for:
-	never claim         	+ (propB)
-	assertion violations	+ (if within scope of claim)
-	acceptance   cycles 	+ (fairness enabled)
-	invalid end states	- (disabled by never claim)
-
-State-vector 88 byte, depth reached 128, errors: 0
-  2697572 states, stored
-  1113386 states, matched
-  3810958 transitions (= stored+matched)
-        0 atomic steps
-hash conflicts:     45345 (resolved)
-
-Stats on memory usage (in Megabytes):
-  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
-  247.498	actual memory usage for states (compression: 82.94%)
-         	state-vector as stored = 68 byte + 28 byte overhead
-  128.000	memory used for hash table (-w24)
-    0.534	memory used for DFS stack (-m10000)
-  375.800	total actual memory usage
-
-
-unreached in proctype Alice
-	(0 of 21 states)
-unreached in proctype Bob
-	(0 of 14 states)
-unreached in proctype Intruder
-	needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
-	needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
-	needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
-	needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
-	needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
-	needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
-	needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
-	needhamSchroeder7.pml:247, state 79, "-end-"
-	(8 of 79 states)
-unreached in claim propB
-	_spin_nvr.tmp:42, state 10, "-end-"
-	(1 of 10 states)
-
-pan: elapsed time 4.53 seconds
-pan: rate 595490.51 states/second
-
-
-
-
-pan: ltl formula propAB
-Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=      1.5 R=   7e+05
-Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.05 R=   7e+05
-
-(Spin Version 6.5.1 -- 31 July 2020)
-
-Full statespace search for:
-	never claim         	+ (propAB)
-	assertion violations	+ (if within scope of claim)
-	acceptance   cycles 	+ (fairness enabled)
-	invalid end states	- (disabled by never claim)
-
-State-vector 88 byte, depth reached 128, errors: 0
-  2697572 states, stored
-  1113386 states, matched
-  3810958 transitions (= stored+matched)
-        0 atomic steps
-hash conflicts:     45527 (resolved)
-
-Stats on memory usage (in Megabytes):
-  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
-  247.498	actual memory usage for states (compression: 82.94%)
-         	state-vector as stored = 68 byte + 28 byte overhead
-  128.000	memory used for hash table (-w24)
-    0.534	memory used for DFS stack (-m10000)
-  375.800	total actual memory usage
-
-
-unreached in proctype Alice
-	(0 of 21 states)
-unreached in proctype Bob
-	(0 of 14 states)
-unreached in proctype Intruder
-	needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
-	needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
-	needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
-	needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
-	needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
-	needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
-	needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
-	needhamSchroeder7.pml:247, state 79, "-end-"
-	(8 of 79 states)
-unreached in claim propAB
-	_spin_nvr.tmp:24, state 10, "-end-"
-	(1 of 10 states)
-
-pan: elapsed time 4.26 seconds
-pan: rate 633232.86 states/second
+			/*	Agent (I)ntruder */
+			keyI, 
+			agentI, 
+			nonceI 	
+		};
+
+	Communication between agents is modelled as an unbuffered (chan)nel, also known as a rendez-vous channel. 
+
+		chan network = [0] of {mtype, mtype, Crypt};
+
+	Rendez-vous channels are unique objects in Promela, as they are the only case in which a program counter is incremented simultaneously in two separate processes. Specifically, the send(!) and recieve(?) commands in two spearate processes occur simultantously. Additionally, it is important to note exactly two processes can participate in rendez-vous communication. If a given sent message pattern matches more than one recieve message (e.g. if there are two processes listening for the same message), then spin will non-deteministically choose one such process leaving the other process in a blocking state. This is important, especially in the context of this exercise as both (B)ob and (I)ntruder are listening for (A)lice's message on a single rendez-vous channel. 
+
+	Looking at the mtype shown above, the protocol specifies status codes (ok, err), message codes (msg1, msg2, msg3), as well as some properties that each agent has. Since the protocol aims to model encrypted message passing the following parameters must be specified for each agent. 
+
+		1) key: this represents the public key of the agent. 
+		2) agent: this represents the identity of the agent.
+		3) nonce: this reprenents a number used once (nonce) used by the agent during encryption.
+
+	Note that in the case of this study, no actual encryption and decryption of messages is taking place. Instead, encryption is modelled by passing integers which represent the public key and nonce. For example, if (A)lice sends (B)ob a message containing (keyB, agentA, nonceA), this represents that (A)lice is encrypting a given message with (B)ob's public key, and is simultaneously identifying herself by providing her identiy and nonce value. (B)ob would then be able to decrypt this message using his _private_ key which may be regarded as internal to his process. However, this step is not explicit in the Promela, models presented here.
+
+Message passing protocol: 
+
+	The basic protocol for message exchange consists of three messages shared between two parties agentA and agentB. 
+	|	msg1: 	agentA -> agentB	(keyB, agentA, nonceA)
+	|	msg2: 	agentB -> agentA	(keyA, nonceA, nonceB)
+	|	msg3: 	agentA -> agentB	(keyB, nonceB, 0)
+
+	The first message (msg1) represents (A)lice encrypting a message with (B)ob's public key, while providing her identity and nonce. The second message (msg2) represents an acquisition message, in which (B)ob encrypts (A)lice's nonce and his own nonce and sends data back to (A)lice. After recieving msg2, (A)lice verifies that her own nonce has been returned. If this step succeed, (A)lice then sends a third message back to (B)ob which contains his nonce. (B)ob can then verify that (A)lice has recieved his nonce, and at this stage the communication protocol terminates. It is worthwhile to note that the entire purpouse of the nonce verification messages is to provide confidence that (A)lice is in communication with (B)ob and vice versa (i.e. that neither is in communication with third party (I)ntruder). 
+ 
+
+Formal verification, Safety properties and Acceptance cycles: 
+
+	In light of the description above, it is useful to have a feeling for what types of properties must be considered when it comes to verifying the protocol. In this case, the main line of working will be to first demonstrate that the message exchange protocol between (A)lice and (B)ob terminates in a sane state prior to introducing an (I)ntruder process. After this, subsequent introductions of the (I)ntruder, can be used to demonstrate that the process terminates in an non-sane state (i.e. that the introduction of the third process somehow interferes with the communication protocol). In all cases, the objective will be to prove that something bad never happens by encoding appropriate LTL formulae. In other words, one is primarily interested in *safety properties* of message passing, such that acceptance cycles (which address liveness) are not relevant to this analysis. All safety properties will be expressed in terms of statments of the following nature
+	|	ALWAYS([]), (A)lice and (B)ob will terminate in an error state 
+	|	ALWAYS([]), (I)ntruder does NOT know (A)lice's nonce value 
+	|	EVENTUALLY(<>), (A)lice and (B)ob will both terminate in a sane state
+
+	In no case will infinite behaviour occur in Needham Schroeder in the context of the protocol. In other words, once cannot form logical statements about someting happeing INFINITELY OFTEN([]<>) in this case of basic Needham Schroeder message passing. Either (A)lice and (B)ob terminate, or they block; no liveness property can be assessed. For this reason, consideration of fariness and acceptance cycles should have no effect when evaulating relevant LTL formulae for this analysis.
+
+
+	In the following sections, an analysis the Promela model for each submodule (1)-(4) will be analyzed according to a common template
+	|	LTL Summary: Presents all LTL formulae to be analysed by spin
+	|	LTL Results: Summarised results from spin analysis of the specified Promela model
+	|	SPIN Output: Records of the complete output from spin for all LTL formulae analysed
+
+
+(1) Modelling of encrypted message passing between two parties (A)lice and (B)ob: (needhamSchroeder2.pml)
+
+	LTL Summary: 
+
+		(a) ltl eventuallyOk { <> ( (statusA == ok) && (statusB == ok) ) }
+	
+	LTL Results:
+
+		In this module, the objective is to complete an example of basic Needham Schroeder message passing by filling in a Promela process for (B)ob. In the case of basic message passing, without the presence of an intruder, the ltl formula (a) only needs to describe a basic safety property about program termination. Specifically, both (A)lice and (B)ob should  EVENTUALLY reach an "ok" status. If this is the case, it means that neither process blocks, which presumably indicates correct coding of the message passing model.
+
+	SPIN Output:
+
+		spin -a needhamSchroeder2.pml 		
+		gcc -DNOREDUCE -o pan  pan.c
+		./pan -a -f -N eventuallyOk	
+		----------------------------------------------------------------------------------------------
+		(Spin Version 6.5.1 -- 31 July 2020)
+
+		Full statespace search for:
+			never claim         	+ (eventuallyOk)
+			assertion violations	+ (if within scope of claim)
+			acceptance   cycles 	+ (fairness enabled)
+			invalid end states	- (disabled by never claim)
+
+		State-vector 60 byte, depth reached 29, errors: 0
+		       21 states, stored (53 visited)
+		       23 states, matched
+		       76 transitions (= visited+matched)
+		        0 atomic steps
+		hash conflicts:         0 (resolved)
+
+		Stats on memory usage (in Megabytes):
+		    0.002	equivalent memory usage for states (stored*(State-vector + overhead))
+		    0.290	actual memory usage for states
+		  128.000	memory used for hash table (-w24)
+		    0.534	memory used for DFS stack (-m10000)
+		  128.730	total actual memory usage
+
+
+		unreached in proctype Alice
+			(0 of 15 states)
+		unreached in proctype Bob
+			(0 of 13 states)
+		unreached in claim eventuallyOk
+			_spin_nvr.tmp:6, state 6, "-end-"
+			(1 of 6 states)
+
+
+(2) Introduction of an unknown (I)ntruder which may freely interfere with communication: (needhamSchroeder3.pml)
+
+	LTL Summary: 
+
+		(a) ltl eventuallyOk { <> ( (statusA == ok) && (statusB == ok) ) }
+
+	LTL Results: 
+
+		Rendezvous communication is binary: only two processes, a sender and a receiver, can meet in a rendezvous handshake. In this case, Alice has sent her message, and the intruder recieves the message instead of Bob. Since Bob has not recieved a message yet, his process blocks. The intruder then sends a message which is recieved by Bob. Because the message data does not match what we expect from Alice, Bob's validation check fails. The intruder can keep replaying the same (blocking) message, such that Bob's state can never advance beyond the validation check. Further, since Alice is waiting for a message from Bob and Bob has blocked, Alice's will also block leading to a deadlock condition.
+
+		(Alice)	
+		|> 	network ! msg1 (partnerA, messageAB);
+		|	network ? (msg2, agentA, data);
+
+
+		(Bob)
+		|	network ? (msg1, agentB, data)	
+		|>	(data.key == keyB) && (data.content1 == agentA);
+
+
+		(Intruder) 
+		|>	network ! msg (recpt, data);
+
+
+	SPIN Output:	
+
+		spin -a needhamSchroeder3.pml 		
+		gcc -DNOREDUCE -o pan  pan.c
+		./pan -a -f -N eventuallyOk
+		----------------------------------------------------------------------------------------------
+		pan: ltl formula eventuallyOk
+		pan:1: acceptance cycle (at depth 25)
+		pan: wrote needhamSchroeder3.pml.trail
+
+		(Spin Version 6.5.1 -- 31 July 2020)
+		Warning: Search not completed
+
+		Full statespace search for:
+			never claim         	+ (eventuallyOk)
+			assertion violations	+ (if within scope of claim)
+			acceptance   cycles 	+ (fairness enabled)
+			invalid end states	- (disabled by never claim)
+
+		State-vector 76 byte, depth reached 35, errors: 1
+		      354 states, stored (1512 visited)
+		     2101 states, matched
+		     3613 transitions (= visited+matched)
+		        0 atomic steps
+		hash conflicts:         0 (resolved)
+
+		Stats on memory usage (in Megabytes):
+		    0.035	equivalent memory usage for states (stored*(State-vector + overhead))
+		    0.283	actual memory usage for states
+		  128.000	memory used for hash table (-w24)
+		    0.534	memory used for DFS stack (-m10000)
+		  128.730	total actual memory usage
+
+		spin -t needhamSchroeder3.pml 
+		----------------------------------------------------------------------------------------------		
+		ltl alwaysErr: [] (((statusA==err)) || ((statusB==err)))
+		ltl eventuallyOk: <> (((statusA==ok)) && ((statusB==ok)))
+		Never claim moves to line 13	[(!(((statusA==ok)&&(statusB==ok))))]
+		      <<<<<START OF CYCLE>>>>>
+		spin: trail ends after 26 steps
+		#processes: 3
+				partnerA = agentB
+				partnerB = agentA
+				statusA = err
+				statusB = err
+		 26:	proc  2 (Intruder:1) needhamSchroeder3.pml:196 (state 34)
+		 26:	proc  1 (Bob:1) needhamSchroeder3.pml:122 (state 4)
+		 26:	proc  0 (Alice:1) needhamSchroeder3.pml:82 (state 6)
+		 26:	proc  - (eventuallyOk:1) _spin_nvr.tmp:12 (state 3)
+		3 processes created
+
+
+
+(3) Introdudtion of (I)ntruder which is known to (A)lice: (needhamSchroeder6.pml)
+
+	LTL Summary: 
+
+		ltl propAB{ [] ( ( (statusA == ok) && (statusB == ok) ) -> ( (partnerB == agentA) && (partnerA == agentB) ) ) }
+		|	If both Alice and Bob reach the end of their runs (i.e. both statusA and statusB are ok) 
+		|	then Alice's communication partner is Bob, and Bob's communication partner is Alice.
+				
+		ltl propA { [] ( ( (statusA == ok)  && (partnerA == agentB) ) ->  ( knows_nonceA == false ) ) }
+		|	propA: If agent A reaches the end of its run (statusA is ok) and A believes it is talking to B 
+		|	(partnerA is agentB) then the intruder does not know A's nonce (!knows_nonceA).
+
+		ltl propB { [] ( ( (statusB == ok)  && (partnerB == agentA) ) ->  ( knows_nonceB == false ) ) }
+		|	propB: If agent B reaches the end of its run (statusB is ok) and it believes it is talking to A 
+		|	(partnerB is agentA) then the intruder does not know B's nonce (!knows_nonceB)
+
+
+	LTL Results:
+	
+	SPIN Output:
+
+		----------------------------------------------------------------------------------------------
+		pan: ltl formula propAB
+		Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.55 R=   6e+05
+		pan:1: assertion violated  !( !(( !(((statusA==14)&&(statusB==14)))||((partnerB==8)&&(partnerA==5))))) (at depth 98)
+		pan: wrote needhamSchroeder6.pml.trail
+
+		(Spin Version 6.5.1 -- 31 July 2020)
+		Warning: Search not completed
+
+		Full statespace search for:
+			never claim         	+ (propAB)
+			assertion violations	+ (if within scope of claim)
+			acceptance   cycles 	+ (fairness enabled)
+			invalid end states	- (disabled by never claim)
+
+		State-vector 84 byte, depth reached 112, errors: 1
+		  1526579 states, stored
+		   761201 states, matched
+		  2287780 transitions (= stored+matched)
+		        0 atomic steps
+		hash conflicts:     21388 (resolved)
+
+		Stats on memory usage (in Megabytes):
+		  163.056	equivalent memory usage for states (stored*(State-vector + overhead))
+		  128.470	actual memory usage for states (compression: 78.79%)
+		         	state-vector as stored = 60 byte + 28 byte overhead
+		  128.000	memory used for hash table (-w24)
+		    0.534	memory used for DFS stack (-m10000)
+		  256.855	total actual memory usage
+
+		#processes: 3
+				partnerA = agentI
+				partnerB = agentA
+				statusA = ok
+				statusB = ok
+				knows_nonceA = 1
+				knows_nonceB = 1
+		 99:	proc  2 (Intruder:1) needhamSchroeder6.pml:231 (state 62)
+		 99:	proc  1 (Bob:1) needhamSchroeder6.pml:148 (state 13) <valid end state>
+		 99:	proc  0 (Alice:1) needhamSchroeder6.pml:109 (state 19) <valid end state>
+		 99:	proc  - (propAB:1) _spin_nvr.tmp:18 (state 6)
+		3 processes created
+
+		----------------------------------------------------------------------------------------------
+		pan: ltl formula propA
+		Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.52 R=   7e+05
+
+		(Spin Version 6.5.1 -- 31 July 2020)
+
+		Full statespace search for:
+			never claim         	+ (propA)
+			assertion violations	+ (if within scope of claim)
+			acceptance   cycles 	+ (fairness enabled)
+			invalid end states	- (disabled by never claim)
+
+		State-vector 84 byte, depth reached 112, errors: 0
+		  1715638 states, stored
+		   925477 states, matched
+		  2641115 transitions (= stored+matched)
+		        0 atomic steps
+		hash conflicts:     22335 (resolved)
+
+		Stats on memory usage (in Megabytes):
+		  183.250	equivalent memory usage for states (stored*(State-vector + overhead))
+		  144.397	actual memory usage for states (compression: 78.80%)
+		         	state-vector as stored = 60 byte + 28 byte overhead
+		  128.000	memory used for hash table (-w24)
+		    0.534	memory used for DFS stack (-m10000)
+		  272.772	total actual memory usage
+
+
+		unreached in proctype Alice
+			(0 of 19 states)
+		unreached in proctype Bob
+			(0 of 13 states)
+		unreached in proctype Intruder
+			needhamSchroeder6.pml:181, state 15, "knows_nonceB = 1"
+			needhamSchroeder6.pml:233, state 66, "-end-"
+			(2 of 66 states)
+		unreached in claim propA
+			_spin_nvr.tmp:33, state 10, "-end-"
+			(1 of 10 states)
+
+		pan: elapsed time 2.78 seconds
+		pan: rate 617135.97 states/second
+
+		----------------------------------------------------------------------------------------------
+		pan: ltl formula propB
+		Depth=     112 States=    1e+06 Transitions= 1.45e+06 Memory=   212.616	t=     1.49 R=   7e+05
+		pan:1: assertion violated  !( !(( !(((statusB==14)&&(partnerB==8)))||(knows_nonceB==0)))) (at depth 96)
+		pan: wrote needhamSchroeder6.pml.trail
+
+		(Spin Version 6.5.1 -- 31 July 2020)
+		Warning: Search not completed
+
+		Full statespace search for:
+			never claim         	+ (propB)
+			assertion violations	+ (if within scope of claim)
+			acceptance   cycles 	+ (fairness enabled)
+			invalid end states	- (disabled by never claim)
+
+		State-vector 84 byte, depth reached 112, errors: 1
+		  1526578 states, stored
+		   761201 states, matched
+		  2287779 transitions (= stored+matched)
+		        0 atomic steps
+		hash conflicts:     16349 (resolved)
+
+		Stats on memory usage (in Megabytes):
+		  163.056	equivalent memory usage for states (stored*(State-vector + overhead))
+		  128.470	actual memory usage for states (compression: 78.79%)
+		         	state-vector as stored = 60 byte + 28 byte overhead
+		  128.000	memory used for hash table (-w24)
+		    0.534	memory used for DFS stack (-m10000)
+		  256.855	total actual memory usage
+
+		#processes: 3
+				partnerA = agentI
+				partnerB = agentA
+				statusA = err
+				statusB = ok
+				knows_nonceA = 1
+				knows_nonceB = 1
+		 97:	proc  2 (Intruder:1) needhamSchroeder6.pml:231 (state 62)
+		 97:	proc  1 (Bob:1) needhamSchroeder6.pml:148 (state 13) <valid end state>
+		 97:	proc  0 (Alice:1) needhamSchroeder6.pml:108 (state 18)
+		 97:	proc  - (propB:1) _spin_nvr.tmp:36 (state 6)
+		3 processes created
+
+
+(4) Patching the protocol and verify security properties: (needhamSchroeder7.pml)
+
+
+	LTL Summary: 
+
+		ltl propAB{ [] ( ( (statusA == ok) && (statusB == ok) ) -> ( (partnerB == agentA) && (partnerA == agentB) ) ) }
+		|	If both Alice and Bob reach the end of their runs (i.e. both statusA and statusB are ok) 
+		|	then Alice's communication partner is Bob, and Bob's communication partner is Alice.
+				
+		ltl propA { [] ( ( (statusA == ok)  && (partnerA == agentB) ) ->  ( knows_nonceA == false ) ) }
+		|	propA: If agent A reaches the end of its run (statusA is ok) and A believes it is talking to B 
+		|	(partnerA is agentB) then the intruder does not know A's nonce (!knows_nonceA).
+
+		ltl propB { [] ( ( (statusB == ok)  && (partnerB == agentA) ) ->  ( knows_nonceB == false ) ) }
+		|	propB: If agent B reaches the end of its run (statusB is ok) and it believes it is talking to A 
+		|	(partnerB is agentA) then the intruder does not know B's nonce (!knows_nonceB)
+
+
+	LTL Results:
+	
+
+	SPIN Output:	
+
+		----------------------------------------------------------------------------------------------
+		pan: ltl formula propA
+		Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=     1.51 R=   7e+05
+		Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.07 R=   7e+05
+
+		(Spin Version 6.5.1 -- 31 July 2020)
+
+		Full statespace search for:
+			never claim         	+ (propA)
+			assertion violations	+ (if within scope of claim)
+			acceptance   cycles 	+ (fairness enabled)
+			invalid end states	- (disabled by never claim)
+
+		State-vector 88 byte, depth reached 128, errors: 0
+		  2697572 states, stored
+		  1113386 states, matched
+		  3810958 transitions (= stored+matched)
+		        0 atomic steps
+		hash conflicts:     45937 (resolved)
+
+		Stats on memory usage (in Megabytes):
+		  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
+		  247.498	actual memory usage for states (compression: 82.94%)
+		         	state-vector as stored = 68 byte + 28 byte overhead
+		  128.000	memory used for hash table (-w24)
+		    0.534	memory used for DFS stack (-m10000)
+		  375.800	total actual memory usage
+
+
+		unreached in proctype Alice
+			(0 of 21 states)
+		unreached in proctype Bob
+			(0 of 14 states)
+		unreached in proctype Intruder
+			needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
+			needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
+			needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
+			needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
+			needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
+			needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
+			needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
+			needhamSchroeder7.pml:247, state 79, "-end-"
+			(8 of 79 states)
+		unreached in claim propA
+			_spin_nvr.tmp:33, state 10, "-end-"
+			(1 of 10 states)
+
+		pan: elapsed time 4.31 seconds
+		pan: rate 625886.77 states/second
+
+
+		----------------------------------------------------------------------------------------------
+		pan: ltl formula propB
+		Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=     1.56 R=   6e+05
+		Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.21 R=   6e+05
+
+		(Spin Version 6.5.1 -- 31 July 2020)
+
+		Full statespace search for:
+			never claim         	+ (propB)
+			assertion violations	+ (if within scope of claim)
+			acceptance   cycles 	+ (fairness enabled)
+			invalid end states	- (disabled by never claim)
+
+		State-vector 88 byte, depth reached 128, errors: 0
+		  2697572 states, stored
+		  1113386 states, matched
+		  3810958 transitions (= stored+matched)
+		        0 atomic steps
+		hash conflicts:     45345 (resolved)
+
+		Stats on memory usage (in Megabytes):
+		  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
+		  247.498	actual memory usage for states (compression: 82.94%)
+		         	state-vector as stored = 68 byte + 28 byte overhead
+		  128.000	memory used for hash table (-w24)
+		    0.534	memory used for DFS stack (-m10000)
+		  375.800	total actual memory usage
+
+
+		unreached in proctype Alice
+			(0 of 21 states)
+		unreached in proctype Bob
+			(0 of 14 states)
+		unreached in proctype Intruder
+			needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
+			needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
+			needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
+			needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
+			needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
+			needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
+			needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
+			needhamSchroeder7.pml:247, state 79, "-end-"
+			(8 of 79 states)
+		unreached in claim propB
+			_spin_nvr.tmp:42, state 10, "-end-"
+			(1 of 10 states)
+
+		pan: elapsed time 4.53 seconds
+		pan: rate 595490.51 states/second
+
+
+		----------------------------------------------------------------------------------------------
+		pan: ltl formula propAB
+		Depth=     128 States=    1e+06 Transitions= 1.35e+06 Memory=   220.331	t=      1.5 R=   7e+05
+		Depth=     128 States=    2e+06 Transitions= 2.72e+06 Memory=   311.933	t=     3.05 R=   7e+05
+
+		(Spin Version 6.5.1 -- 31 July 2020)
+
+		Full statespace search for:
+			never claim         	+ (propAB)
+			assertion violations	+ (if within scope of claim)
+			acceptance   cycles 	+ (fairness enabled)
+			invalid end states	- (disabled by never claim)
+
+		State-vector 88 byte, depth reached 128, errors: 0
+		  2697572 states, stored
+		  1113386 states, matched
+		  3810958 transitions (= stored+matched)
+		        0 atomic steps
+		hash conflicts:     45527 (resolved)
+
+		Stats on memory usage (in Megabytes):
+		  298.422	equivalent memory usage for states (stored*(State-vector + overhead))
+		  247.498	actual memory usage for states (compression: 82.94%)
+		         	state-vector as stored = 68 byte + 28 byte overhead
+		  128.000	memory used for hash table (-w24)
+		    0.534	memory used for DFS stack (-m10000)
+		  375.800	total actual memory usage
+
+
+		unreached in proctype Alice
+			(0 of 21 states)
+		unreached in proctype Bob
+			(0 of 14 states)
+		unreached in proctype Intruder
+			needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
+			needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
+			needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
+			needhamSchroeder7.pml:188, state 19, "knows_nonceB = 1"
+			needhamSchroeder7.pml:221, state 47, "data.content1 = nonceB"
+			needhamSchroeder7.pml:233, state 60, "data.content2 = nonceB"
+			needhamSchroeder7.pml:239, state 68, "data.content3 = nonceB"
+			needhamSchroeder7.pml:247, state 79, "-end-"
+			(8 of 79 states)
+		unreached in claim propAB
+			_spin_nvr.tmp:24, state 10, "-end-"
+			(1 of 10 states)
+
+		pan: elapsed time 4.26 seconds
+		pan: rate 633232.86 states/second
