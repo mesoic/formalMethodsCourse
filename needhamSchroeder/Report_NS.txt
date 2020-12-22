@@ -1,17 +1,17 @@
 Introduction:
 
-	The Needham-Schroder protocol is a protol which provides a secure messaging protocol between two parties (A)lice and (B)ob. The objective of this exercise is to elucidate a known vulnerability in the protocol, and to subsequently patch the protocol. In this exercise, the protocol will be analysed in four parts by buiding Promela models and performing analysis via spin. 
+	The Needham-Schroder protocol is a protocol which provides a secure messaging protocol between two parties (A)lice and (B)ob. The objective of this exercise is to elucidate a known vulnerability in the protocol, and to subsequently patch the protocol. In this exercise, the protocol will be analyzed in four parts by building Promela models and performing analysis via spin. 
 
-		(1) Modelling of encrypted message passing between two parties (A)lice and (B)ob (needhamSchroeder2.pml)
+		(1) Modeling of encrypted message passing between two parties (A)lice and (B)ob (needhamSchroeder2.pml)
 		(2) Introduction of an unknown (I)ntruder which may freely interfere with communication (needhamSchroeder3.pml)
-		(3) Introdudtion of (I)ntruder which is known to (A)lice (needhamSchroeder6.pml)
+		(3) Introduction of (I)ntruder which is known to (A)lice (needhamSchroeder6.pml)
 		(4) Patching the protocol and verify security properties (needhamSchroeder7.pml)
 
 	What follows is a brief description of the program structure, as well as formal verification of each of the above Promela models. 
 
 Program structure: 
 
-	In all cases, the message passing agents (A)lice, (B)ob, and (I)ntruder will be modelled as Promela processes, and different message properties and states are modelled using a Promela (mtype) data structre. Promela mtypes are simple structures which map a (string) to an (int). 
+	In all cases, the message passing agents (A)lice, (B)ob, and (I)ntruder will be modeled as Promela processes, and different message properties and states are modeled using a Promela (mtype) data structure. Promela mtypes are simple structures which map a (string) to an (int). 
 
 		mtype = {
 			/* Status Codes */
@@ -39,19 +39,19 @@ Program structure:
 			nonceI 	
 		};
 
-	Communication between agents is modelled as an unbuffered (chan)nel, also known as a rendez-vous channel. 
+	Communication between agents is modeled as an unbuffered (chan)nel, also known as a rendez-vous channel. 
 
 		chan network = [0] of {mtype, mtype, Crypt};
 
-	Rendez-vous channels are unique objects in Promela, as they are the only case in which a program counter is incremented simultaneously in two separate processes. Specifically, the send(!) and recieve(?) commands in two spearate processes occur simultantously. Additionally, it is important to note exactly two processes can participate in rendez-vous communication. If a given sent message pattern matches more than one recieve message (e.g. if there are two processes listening for the same message), then spin will non-deteministically choose one such process leaving the other process in a blocking state. This is important, especially in the context of this exercise as both (B)ob and (I)ntruder are listening for (A)lice's message on a single rendez-vous channel. 
+	Rendez-vous channels are unique objects in Promela, as they are the only case in which a program counter is incremented simultaneously in two separate processes. Specifically, the send(!) and receive(?) commands in two separate processes occur simultaneously. Additionally, it is important to note exactly two processes can participate in rendez-vous communication. If a given sent message pattern matches more than one recieve message (e.g. if there are two processes listening for the same message), then spin will non-deterministically choose one such process leaving the other process in a blocking state. This is important, especially in the context of this exercise as both (B)ob and (I)ntruder are listening for (A)lice's message on a single rendez-vous channel. 
 
 	Looking at the mtype shown above, the protocol specifies status codes (ok, err), message codes (msg1, msg2, msg3), as well as some properties that each agent has. Since the protocol aims to model encrypted message passing the following parameters must be specified for each agent. 
 
 		1) key: this represents the public key of the agent. 
 		2) agent: this represents the identity of the agent.
-		3) nonce: this reprenents a number used once (nonce) used by the agent during encryption.
+		3) nonce: this represents a number used once (nonce) used by the agent during encryption.
 
-	Note that in the case of this study, no actual encryption and decryption of messages is taking place. Instead, encryption is modelled by passing integers which represent the public key and nonce. For example, if (A)lice sends (B)ob a message containing (keyB, agentA, nonceA), this represents that (A)lice is encrypting a given message with (B)ob's public key, and is simultaneously identifying herself by providing her identiy and nonce value. (B)ob would then be able to decrypt this message using his _private_ key which may be regarded as internal to his process. However, this step is not explicit in the Promela, models presented here.
+	Note that in the case of this study, no actual encryption and decryption of messages is taking place. Instead, encryption is modeled by passing integers which represent the public key and nonce. For example, if (A)lice sends (B)ob a message containing (keyB, agentA, nonceA), this represents that (A)lice is encrypting a given message with (B)ob's public key, and is simultaneously identifying herself by providing her identity and nonce value. (B)ob would then be able to decrypt this message using his _private_ key which may be regarded as internal to his process. However, this step is not explicit in the Promela, models presented here.
 
 Message passing protocol: 
 
@@ -60,26 +60,26 @@ Message passing protocol:
 	|	msg2: 	agentB -> agentA	(keyA, nonceA, nonceB)
 	|	msg3: 	agentA -> agentB	(keyB, nonceB, 0)
 
-	The first message (msg1) represents (A)lice encrypting a message with (B)ob's public key, while providing her identity and nonce. The second message (msg2) represents an acquisition message, in which (B)ob encrypts (A)lice's nonce and his own nonce and sends data back to (A)lice. After recieving msg2, (A)lice verifies that her own nonce has been returned. If this step succeed, (A)lice then sends a third message back to (B)ob which contains his nonce. (B)ob can then verify that (A)lice has recieved his nonce, and at this stage the communication protocol terminates. It is worthwhile to note that the entire purpouse of the nonce verification messages is to provide confidence that (A)lice is in communication with (B)ob and vice versa (i.e. that neither is in communication with third party (I)ntruder). 
+	The first message (msg1) represents (A)lice encrypting a message with (B)ob's public key, while providing her identity and nonce. The second message (msg2) represents an acquisition message, in which (B)ob encrypts (A)lice's nonce and his own nonce and sends data back to (A)lice. After receiving msg2, (A)lice verifies that her own nonce has been returned. If this step succeed, (A)lice then sends a third message back to (B)ob which contains his nonce. (B)ob can then verify that (A)lice has received his nonce, and at this stage the communication protocol terminates. It is worthwhile to note that the entire purpose of the nonce verification messages is to provide confidence that (A)lice is in communication with (B)ob and vice versa (i.e. that neither is in communication with third party (I)ntruder). 
  
 
 Formal verification, Safety properties and Acceptance cycles: 
 
-	In light of the description above, it is useful to have a feeling for what types of properties must be considered when it comes to verifying the protocol. In this case, the main line of working will be to first demonstrate that the message exchange protocol between (A)lice and (B)ob terminates in a sane state prior to introducing an (I)ntruder process. After this, subsequent introductions of the (I)ntruder, can be used to demonstrate that the process terminates in an non-sane state (i.e. that the introduction of the third process somehow interferes with the communication protocol). In all cases, the objective will be to prove that something bad never happens by encoding appropriate LTL formulae. In other words, one is primarily interested in *safety properties* of message passing, such that acceptance cycles (which address liveness) are not relevant to this analysis. All safety properties will be expressed in terms of statments of the following nature
+	In light of the description above, it is useful to have a feeling for what types of properties must be considered when it comes to verifying the protocol. In this case, the main line of working will be to first demonstrate that the message exchange protocol between (A)lice and (B)ob terminates in a sane state prior to introducing an (I)ntruder process. After this, subsequent introductions of the (I)ntruder, can be used to demonstrate that the process terminates in an non-sane state (i.e. that the introduction of the third process somehow interferes with the communication protocol). In all cases, the objective will be to prove that something bad never happens by encoding appropriate LTL formulas. In other words, one is primarily interested in *safety properties* of message passing, such that acceptance cycles (which address liveness) are not relevant to this analysis. All safety properties will be expressed in terms of statements of the following nature
 	|	ALWAYS([]), (A)lice and (B)ob will terminate in an error state 
 	|	ALWAYS([]), (I)ntruder does NOT know (A)lice's nonce value 
 	|	EVENTUALLY(<>), (A)lice and (B)ob will both terminate in a sane state
 
-	In no case will infinite behaviour occur in Needham Schroeder in the context of the protocol. In other words, once cannot form logical statements about someting happeing INFINITELY OFTEN([]<>) in this case of basic Needham Schroeder message passing. Either (A)lice and (B)ob terminate, or they block; no liveness property can be assessed. For this reason, consideration of fariness and acceptance cycles should have no effect when evaulating relevant LTL formulae for this analysis.
+	In no case will infinite behavior occur in Needham Schroeder in the context of the protocol. In other words, once cannot form logical statements about something happening INFINITELY OFTEN([]<>) in this case of basic Needham Schroeder message passing. Either (A)lice and (B)ob terminate, or they block; no liveness property can be assessed. For this reason, consideration of fairness and acceptance cycles should have no effect when evaluating relevant LTL formulas for this analysis.
 
 
 	In the following sections, an analysis the Promela model for each submodule (1)-(4) will be analyzed according to a common template
-	|	LTL Summary: Presents all LTL formulae to be analysed by spin
-	|	LTL Results: Summarised results from spin analysis of the specified Promela model
-	|	SPIN Output: Records of the complete output from spin for all LTL formulae analysed
+	|	LTL Summary: Presents all LTL formulae to be analyzed by spin
+	|	LTL Results: Summarized results from spin analysis of the specified Promela model
+	|	SPIN Output: Records of the complete output from spin for all LTL formulae analyzed
 
 
-(1) Modelling of encrypted message passing between two parties (A)lice and (B)ob: (needhamSchroeder2.pml)
+(1) Modeling of encrypted message passing between two parties (A)lice and (B)ob: (needhamSchroeder2.pml)
 
 	LTL Summary: 
 
@@ -87,7 +87,7 @@ Formal verification, Safety properties and Acceptance cycles:
 	
 	LTL Results:
 
-		In this module, the objective is to complete an example of basic Needham Schroeder message passing by filling in a Promela process for (B)ob. In the case of basic message passing, without the presence of an intruder, the ltl formula (a) only needs to describe a basic safety property about program termination. Specifically, both (A)lice and (B)ob should  EVENTUALLY reach an "ok" status. If this is the case, it means that neither process blocks, which presumably indicates correct coding of the message passing model.
+		In this module, the objective is to complete an example of basic Needham Schroeder message passing by filling in a Promela process for (B)ob. In the case of basic message passing, without the presence of an (I)ntruder, the LTL formula (a) only needs to describe a basic safety property about program termination. Specifically, both (A)lice and (B)ob should  EVENTUALLY reach an "ok" status. If this is the case, it means that neither process blocks, which presumably indicates correct coding of the message passing model.
 
 	SPIN Output:
 
@@ -135,9 +135,9 @@ Formal verification, Safety properties and Acceptance cycles:
 
 	LTL Results: 
 
-		The (I)ntruder is modelled as a process which non-deterministically replays and/or injects messages into the unbuffered communication channel between (A)lice and (B)ob within an infinite loop. Note that communication over a rendez-vous channel is binary: only two processes, a sender and a receiver, can meet in a rendezvous handshake. 
+		The (I)ntruder is modeled as a process which non-deterministically replays and/or injects messages into the unbuffered communication channel between (A)lice and (B)ob within an infinite loop. Note that communication over a rendez-vous channel is binary: only two processes, a sender and a receiver, can meet in a rendezvous handshake. 
 
-		In this case, the presence of the (I)ntruder causes the stated ltl formula to fail. The origin of a failure for (A)lice and (B)ob to reach an "ok" state occurs when the (I)truder answers for (B)ob. Since (B)ob has not recieved a message, his process blocks. The (I)ntruder then sends a message which is recieved by (B)ob. Because the message data does not match what we expect from (A)lice, (B)ob's validation check fails. The intruder can keep replaying the same (blocking) message, such that (B)ob's state can never advance beyond the validation check. Since (A)lice is waiting for a message from (B)ob and Bob has blocked, (A)lice's will also block leading to a condition which leaves both (A)lice and (B)ob in am "err" state. Examining the error trace in SPIN reveals this process. 
+		In this case, the presence of the (I)ntruder causes the stated ltl formula to fail. The origin of a failure for (A)lice and (B)ob to reach an "ok" state occurs when the (I)truder answers for (B)ob. Since (B)ob has not received a message, his process blocks. The (I)ntruder then sends a message which is received by (B)ob. Because the message data does not match what we expect from (A)lice, (B)ob's validation check fails. The (I)ntruder can keep replaying the same (blocking) message, such that (B)ob's state can never advance beyond the validation check. Since (A)lice is waiting for a message from (B)ob and Bob has blocked, (A)lice's will also block leading to a condition which leaves both (A)lice and (B)ob in am "err" state. Examining the error trace in SPIN reveals this process. 
 
 			#processes: 3
 				partnerA = agentB
@@ -157,7 +157,7 @@ Formal verification, Safety properties and Acceptance cycles:
 			|>	(data.key == keyB) && (data.content1 == agentA);
 
 
-			(Intruder) 
+			((I)ntruder) 
 			|>	network ! msg (recpt, data);
 
 
@@ -206,7 +206,7 @@ Formal verification, Safety properties and Acceptance cycles:
 				partnerB = agentA
 				statusA = err
 				statusB = err
-		 26:	proc  2 (Intruder:1) needhamSchroeder3.pml:196 (state 34)
+		 26:	proc  2 ((I)ntruder:1) needhamSchroeder3.pml:196 (state 34)
 		 26:	proc  1 (Bob:1) needhamSchroeder3.pml:122 (state 4)
 		 26:	proc  0 (Alice:1) needhamSchroeder3.pml:82 (state 6)
 		 26:	proc  - (eventuallyOk:1) _spin_nvr.tmp:12 (state 3)
@@ -214,7 +214,7 @@ Formal verification, Safety properties and Acceptance cycles:
 
 
 
-(3) Introdudtion of (I)ntruder which is known to (A)lice: (needhamSchroeder6.pml)
+(3) Introduction of (I)ntruder which is known to (A)lice: (needhamSchroeder6.pml)
 
 	LTL Summary: 
 
@@ -224,23 +224,23 @@ Formal verification, Safety properties and Acceptance cycles:
 				
 		ltl propA { [] ( ( (statusA == ok)  && (partnerA == agentB) ) ->  ( knows_nonceA == false ) ) }
 		|	propA: If agent A reaches the end of its run (statusA is ok) and A believes it is talking to B 
-		|	(partnerA is agentB) then the intruder does not know A's nonce (!knows_nonceA).
+		|	(partnerA is agentB) then the (I)ntruder does not know A's nonce (!knows_nonceA).
 
 		ltl propB { [] ( ( (statusB == ok)  && (partnerB == agentA) ) ->  ( knows_nonceB == false ) ) }
 		|	propB: If agent B reaches the end of its run (statusB is ok) and it believes it is talking to A 
-		|	(partnerB is agentA) then the intruder does not know B's nonce (!knows_nonceB)
+		|	(partnerB is agentA) then the (I)ntruder does not know B's nonce (!knows_nonceB)
 
 
 	LTL Results:
 	
-		In this case we consider an (I)ntruder whose identity is known to (A)lice. This is represented by (A)lice having knowledge of the (I)ntruders public key, which implies that Alice will be able to encrypt messages, that can only be decrypted by the intruder. (A)lice will non-deterministially choose to initiate communication with either (B)ob, or the (I)ntruder. 
+		In this case we consider an (I)ntruder whose identity is known to (A)lice. This is represented by (A)lice having knowledge of the (I)ntruders public key, which implies that Alice will be able to encrypt messages, that can only be decrypted by the (I)ntruder. (A)lice will non-deterministically choose to initiate communication with either (B)ob, or the (I)ntruder. 
 
 			if 
 			:: partnerA = agentB; pkey = keyB;
 			:: partnerA = agentI; pkey = keyI;
 			fi
 
-		In the source code for the intruder, boolean variable are included in order to check whether the intruder has learned the nonce of either (A)lice or (B)ob during program execution. Learning the nonce, value represents a security threat, as it allows the intrudter to encrypt with (A)lices public key, and (B)ob's nonce such that the message looks like it is coming from (B)ob but it is actually coming from the intruder. 
+		In the source code for the (I)ntruder, boolean variable are included in order to check whether the (I)ntruder has learned the nonce of either (A)lice or (B)ob during program execution. Learning the nonce, value represents a security threat, as it allows the (I)ntruder to encrypt with (A)lices public key, and (B)ob's nonce such that the message looks like it is coming from (B)ob but it is actually coming from the (I)ntruder. 
 
 			if 
 			::  (intercepted.key == keyI) -> if 
@@ -253,19 +253,19 @@ Formal verification, Safety properties and Acceptance cycles:
 			:: skip;
 			fi
 
-		At first glance, it is not obvious wheter a program trace exists such that the (I)intruder would learn (B)ob's nonce. Hence we rely on the model checker to find such a trace and use the results to develop an intuition for what is happening in the program. Having a look at the first ltl formula - the interpretation is that is both (A)lice and (B)ob reach the end of program execution, that the message passing did in fact occur between (A)lice and (B)ob. 
+		At first glance, it is not obvious whether a program trace exists such that the (I)ntruder would learn (B)ob's nonce. Hence we rely on the model checker to find such a trace and use the results to develop an intuition for what is happening in the program. Having a look at the first ltl formula - the interpretation is that is both (A)lice and (B)ob reach the end of program execution, that the message passing did in fact occur between (A)lice and (B)ob. 
 
 			ltl propAB{ [] ( ( (statusA == ok) && (statusB == ok) ) -> ( (partnerB == agentA) && (partnerA == agentB) ) ) }
 
-		From model checking results, we see that this ltl passes, indicating that a possible execution trace exists in which the (I)intruder does not take part. Such a case occurs when (A)lice (nondeteministially) initiates communication with (B)ob. In the second ltl formula, we check the case where (A)lice communicates with (B)ob and reaches the end of her run (ok-status) - whether the (I)ntruder can learn (A)lice's nonce if Alice initialized communication with (B)ob 
+		From model checking results, we see that this LTL passes, indicating that a possible execution trace exists in which the (I)(I)ntruder does not take part. Such a case occurs when (A)lice (non-deterministically) initiates communication with (B)ob. In the second LTL formula, we check the case where (A)lice communicates with (B)ob and reaches the end of her run (ok-status) - whether the (I)ntruder can learn (A)lice's nonce if Alice initialized communication with (B)ob 
 
 			ltl propA { [] ( ( (statusA == ok)  && (partnerA == agentB) ) ->  ( knows_nonceA == false ) ) }
 
-		This formula passes with zero errors, so one may conclude that Alice cannot be compromised by the intruder. In the last case, we test whether (B)ob can be comproimised by the intruder. This case is analogous to the previous case.
+		This formula passes with zero errors, so one may conclude that Alice cannot be compromised by the (I)ntruder. In the last case, we test whether (B)ob can be compromised by the (I)ntruder . This case is analogous to the previous case.
 
 			ltl propB { [] ( ( (statusB == ok)  && (partnerB == agentA) ) ->  ( knows_nonceB == false ) ) }
 
-		In this case, spin finds an error, exposing a security hole in the Needham Schroeder handshake protocol. During communication, (B)ob believes he is in communication with (A)lice (partnerB == agentA), but he is actually in communication with the intruder, who replays (A)lice's credentials. In this way, (B)ob sends his nonce to the intruder compromising the security of the protocol-
+		In this case, spin finds an error, exposing a security hole in the Needham Schroeder handshake protocol. During communication, (B)ob believes he is in communication with (A)lice (partnerB == agentA), but he is actually in communication with the (I)ntruder, who replays (A)lice's credentials. In this way, (B)ob sends his nonce to the (I)ntruder compromising the security of the protocol-
 
 
 	SPIN Output:
@@ -307,7 +307,7 @@ Formal verification, Safety properties and Acceptance cycles:
 				statusB = ok
 				knows_nonceA = 1
 				knows_nonceB = 1
-		 99:	proc  2 (Intruder:1) needhamSchroeder6.pml:231 (state 62)
+		 99:	proc  2 ((I)ntruder:1) needhamSchroeder6.pml:231 (state 62)
 		 99:	proc  1 (Bob:1) needhamSchroeder6.pml:148 (state 13) <valid end state>
 		 99:	proc  0 (Alice:1) needhamSchroeder6.pml:109 (state 19) <valid end state>
 		 99:	proc  - (propAB:1) _spin_nvr.tmp:18 (state 6)
@@ -345,7 +345,7 @@ Formal verification, Safety properties and Acceptance cycles:
 			(0 of 19 states)
 		unreached in proctype Bob
 			(0 of 13 states)
-		unreached in proctype Intruder
+		unreached in proctype (I)ntruder
 			needhamSchroeder6.pml:181, state 15, "knows_nonceB = 1"
 			needhamSchroeder6.pml:233, state 66, "-end-"
 			(2 of 66 states)
@@ -393,7 +393,7 @@ Formal verification, Safety properties and Acceptance cycles:
 				statusB = ok
 				knows_nonceA = 1
 				knows_nonceB = 1
-		 97:	proc  2 (Intruder:1) needhamSchroeder6.pml:231 (state 62)
+		 97:	proc  2 ((I)ntruder:1) needhamSchroeder6.pml:231 (state 62)
 		 97:	proc  1 (Bob:1) needhamSchroeder6.pml:148 (state 13) <valid end state>
 		 97:	proc  0 (Alice:1) needhamSchroeder6.pml:108 (state 18)
 		 97:	proc  - (propB:1) _spin_nvr.tmp:36 (state 6)
@@ -411,16 +411,16 @@ Formal verification, Safety properties and Acceptance cycles:
 				
 		ltl propA { [] ( ( (statusA == ok)  && (partnerA == agentB) ) ->  ( knows_nonceA == false ) ) }
 		|	propA: If agent A reaches the end of its run (statusA is ok) and A believes it is talking to B 
-		|	(partnerA is agentB) then the intruder does not know A's nonce (!knows_nonceA).
+		|	(partnerA is agentB) then the (I)ntruder does not know A's nonce (!knows_nonceA).
 
 		ltl propB { [] ( ( (statusB == ok)  && (partnerB == agentA) ) ->  ( knows_nonceB == false ) ) }
 		|	propB: If agent B reaches the end of its run (statusB is ok) and it believes it is talking to A 
-		|	(partnerB is agentA) then the intruder does not know B's nonce (!knows_nonceB)
+		|	(partnerB is agentA) then the (I)ntruder does not know B's nonce (!knows_nonceB)
 
 
 	LTL Results:
 	
-		In order to patch the Needham Schroder protocol, it is ncessary to perform an identity check when establishing communication between processes. Note that the model checking indicates that the communication protocol fails when (B)ob is replying (i.e. the ms2 part of the protocol). In the original protocol, (B)ob does not transmit his identiy back to (A)lice, such that the attacker can (potentially) replay (B)ob's message, having obtained his nonce. The original messaging protocol is as follows:
+		In order to patch the Needham-Schroeder protocol, it is necessary to perform an identity check when establishing communication between processes. Note that the model checking indicates that the communication protocol fails when (B)ob is replying (i.e. the ms2 part of the protocol). In the original protocol, (B)ob does not transmit his identity back to (A)lice, such that the attacker can (potentially) replay (B)ob's message, having obtained his nonce. The original messaging protocol is as follows:
 
 			Needham-Schroeder message passing protocol. 
 			|	msg1:	agentA -> agentB	(keyB, agentA, nonceA)
@@ -434,19 +434,19 @@ Formal verification, Safety properties and Acceptance cycles:
 			|	msg2:	agentB -> agentA	(keyA, agentB, nonceA, nonceB)
 			|	msg3:	agentA -> agentB	(keyB, nonceB, 0, 0)
 
-		Then, prior to (A)lice transmitting msg3 after reciept of msg2, we introduce a blocking statement into the protocol which stops (A)lice's execution if she is NOT in communication with (B)ob. In summary, (A)lice will non-deterministically choose a partner to initate communication with via msg1 ...
+		Then, prior to (A)lice transmitting msg3 after receipt of msg2, we introduce a blocking statement into the protocol which stops (A)lice's execution if she is NOT in communication with (B)ob. In summary, (A)lice will non-deterministically choose a partner to initiate communication with via msg1 ...
 
 			if 
 			:: partnerA = agentB; pkey = keyB;
 			:: partnerA = agentI; pkey = keyI;
 			fi
 
-		And then she will verify that the message received from her partner is indeed who she initated comminication with. This works because the (I)ntruder can only replay intercepted content (i.e. he would only have access to agentI, which originates from (A)lice)
+		And then she will verify that the message received from her partner is indeed who she initiated communication with. This works because the (I)ntruder can only replay intercepted content (i.e. he would only have access to agentI, which originates from (A)lice)
 
 			/* verify (msg2) : blocking	*/
 			(data.key == keyA) && (data.content1 == partnerA) && (data.content2 == nonceA);
 
-		Upon analysis of this protocol patch with spin, we find that all three LTL formulae pass with normal behaviour. 	
+		Upon analysis of this protocol patch with spin, we find that all three LTL formulae pass with normal behavior. 	
 
 	SPIN Output:	
 
@@ -483,7 +483,7 @@ Formal verification, Safety properties and Acceptance cycles:
 			(0 of 21 states)
 		unreached in proctype Bob
 			(0 of 14 states)
-		unreached in proctype Intruder
+		unreached in proctype (I)ntruder
 			needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
 			needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
 			needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
@@ -534,7 +534,7 @@ Formal verification, Safety properties and Acceptance cycles:
 			(0 of 21 states)
 		unreached in proctype Bob
 			(0 of 14 states)
-		unreached in proctype Intruder
+		unreached in proctype (I)ntruder
 			needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
 			needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
 			needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
@@ -585,7 +585,7 @@ Formal verification, Safety properties and Acceptance cycles:
 			(0 of 21 states)
 		unreached in proctype Bob
 			(0 of 14 states)
-		unreached in proctype Intruder
+		unreached in proctype (I)ntruder
 			needhamSchroeder7.pml:184, state 11, "knows_nonceB = 1"
 			needhamSchroeder7.pml:186, state 15, "knows_nonceB = 1"
 			needhamSchroeder7.pml:187, state 17, "knows_nonceA = 1"
