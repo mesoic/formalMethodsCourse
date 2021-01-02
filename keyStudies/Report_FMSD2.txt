@@ -156,6 +156,10 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 		|	performBinarySearch-modified-normalBehaviour1.proof
 		
 
+Problem 2: Definition of JML contracts 
+	
+	See problem 4
+
 Problem 3.1: Verification of performBinarySearch method /* exceptional_behaviour */ using Key
 
 	The problem statement indicates that the the exceptonal_behaviour of the eliminateDuplicates() method does not meet the specification. For reference, the code below includes the exceptional behaviour part of the JML contract, as well as the method body that we are trying to verify.
@@ -321,4 +325,95 @@ Problem 3.3: Verification of Drawing class - Class invariants and Loop invariant
 		| 	drawMultiple-auto-normalBehaviour0.proof
 		|	drawMultiple-normalBehaviour0.proof	
 		|	drawVertical-normalBehaviour0.proof	
+
+
+Problem 4: Development of verified Java application including JML method contracts and method proofs using the KeY tool
+
+	This problem aims at a synthesis of the previous working examples using KeY. In this example, a simple application modelling a "numeric text box" is developed in Java. The application accepts charachters (or strings) as input from a simple command line interface (CLI), and places them in a data structure. With each new input, the data structure is rendered into a visual text box using a simple graphical user interface (javax.swing library). The application models text box data as a fixed length array of integers [0-9], and exception handling is structured such that the text box only accepts single digits as input. JML class invariants are developed in order to ensure integrity of the data structure at the class level, and JML method contracts are developed in order to ensure consistency of normal_behaviour and exceptional_behaviour handling. 
+
+	4a: Application structure 
+
+		The program has been organised into three classes which handle data opertaion. Note that the NumericTextBoxData class will be the target of verification efforts using KeY. 
+
+		Application structure:
+		| NumericTextBox: Contains the main function which implements the (CLI). Passes user input to NumericTextBoxData.
+		| NumericTextBoxData: Contains data structure and associated update methods. Also interacts with TextBoxRenderer.  
+		| TextBoxRenderer: Implements a simple graphical user interface to display NumericTextBoxData to the user. 
+		
+	4b: NumericTextBoxData implementation details
+
+		This class contains the data structure for the application and is the primary target for verification efforts. JML class invariants and method contracts are proposed for all methods in this class, and KeY proofs are supplied in non-trivial cases. The basic structure of the class involves two quantities. 
+
+			1) An integer array to hold our text box digits. Note that integer arrays in Java are fixed length. Entries into the array "content" must be single integer digits [0-9], and empty positions in the array are represented by the EMPTY macro variable (private final int EMPTY = -1;)
+
+				private int[] content;
+
+			2) An integer which indexes the position of the first empty index in the array. 
+
+				private int cursorPosition;
+
+		Note that these values are initialized in the class constructor (which is invoked by the CLI class containing the application main() method - NumericTextBox). 
+
+			public NumericTextBoxData(int dataLength) {
+
+				/* Initialize int data array */
+				content = new int[dataLength];
+
+				/* Re-initalize cursorPosition to zero */
+				cursorPosition = 0;
+
+				/* Fill array data with -1 */
+				Arrays.fill(content, EMPTY);	
+
+				/* Initialize the renderer */
+				textBoxRenderer	= new TextBoxRenderer();
+
+				/* Force render the initial content */
+				textBoxRenderer.contentChanged = true;
+				textBoxRenderer.renderContent(content, cursorPosition);
+			}
+
+		As a user enters digits the array is populated, beginning at content[0] and continuing with content[1], content[2] etc. The cursorPosition variable always stores the index of the next EMPTY position in the array. Note that when the array is full, that cursorPostion = content.length (this is important to consider when consturcting JML invariants). The NumericTextBoxData class also has several methods which facilitate this user interaction. 
+
+			1) public void enterCharacter(char input): 
+
+				Take user input in the form of a single charachter. If the charachter is a digit [0-9] it is added to the content and the cursor position is advanced by one. If the charachter is not a digit, an IllegalArgumentException is thrown, and if the array is full a RuntimeException is thrown. 
+	
+			2) public void backspace()
+
+				Removes a digit from content, and decrements the cursorPosition by one. If content is empty, a RuntimeException is thrown.
+
+			3) public void clear()
+
+				Removes all content from content (sets all elements to EMPTY), and sets cursorPosition to zero. 
+
+		Each method also sets boolean values which tell the TextBoxRenderer how to render the content. If the entry is valid, the entire content array is displayed in the TextBoxRenderer. If an exception is thrown, the TextBoxRenderer displays the error message in red text. Additionally, the NumericTextBoxData class also has a few wrapper methods which allow the display methods of the TextBoxRenderer class to be called within the scope of the NumericTextBoxData class. 
+
+
+	4c: JML class invariants for the NumericTextBoxData class.
+
+		JML is used to define class invariants for the behaviour of the content array and cursor position. JML class invariants state that during the execution of ANY method in the class, that the invariant should always hold. In the case of the content array and cursorPosition, it is relatively straightforward to constuct intuitive class invariants. 
+
+		1) The cursorPosition is always a valid value. The cursor should always point to a valid index in the content array OR, in the case of a full content array, it should be equal to the length of the array. 
+
+			/*@ public invariant	  
+			  @ 0 <= cursorPosition && cursorPosition <= content.length;
+			  @*/
+
+		2) The content before the cursor contains only single digits. In other words, the value of the array at every non-EMPTY position in the array should be between 0 and 9. Note that cursorPosition indicates the first EMPTY position of the array. 
+
+			/*@ public invariant	  
+			  @ (\forall int i; 0 <= i && i < cursorPosition; 0 <= content[i] && content[i] <= 9);
+			  @*/
+
+		3) The content after the cursor is EMPTY, where EMPTY = -1.
+
+			/*@ public invariant
+			  @ cursorPosition < content.length && 
+			  @ 		(\forall int i; i <= cursorPosition && cursorPosition < content.length; content[i] == -1);
+			  @*/
+
+
+	4d: JML method contracts and proof obligations for the NumericTextBoxData class.
+
 
