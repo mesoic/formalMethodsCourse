@@ -16,6 +16,11 @@
  * Hint: If you use variables for array indices in an assignable-clause,
  *       their values are evaluated in the pre-state.
  */
+
+/* A full implementation, where CLI interaction results in updating of a JFrame text box
+ * which dynamically renders user input and reports errors. For this reason, the following 
+ * packages are needed. 	
+ */
 import java.util.*;  
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -24,8 +29,35 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.WindowEvent;
 
+
+/* 
+ * This class handles the data structure for the NumericTextBox and is the target of 
+ * JML verification efforts regarding handling of user interaction.
+ */
 class NumericTextBoxData
 {
+	/* JML class invariants */
+	/*
+	 * (1) The cursorPosition is always a valid value (see comment for cursorPosition). 
+	 *
+	/*@ public invariant	  
+	  @ 0 <= cursorPosition && cursorPosition <= content.length;
+	  @*/
+
+	/*
+	 * (2) The content before the cursor contains only single digits
+	 *
+	/*@ public invariant	  
+	  @ (\forall int i; 0 <= i && i < cursorPosition; 0 <= content[i] && content[i] <= 9);
+	  @*/
+
+	/*
+	 * (3) The content after the cursor is EMPTY
+	 *
+	/*@ public invariant
+	  @ cursorPosition < content.length && 
+	  @ 		(\forall int i; i <= cursorPosition && cursorPosition < content.length; content[i] == -1);
+	  @*/
 
 	/**
 	 * The current cursor position, i.e. the position after the previously entered digit.
@@ -33,29 +65,20 @@ class NumericTextBoxData
 	 * Note that the number of possible cursor positions is greater by one than
 	 * the length of the text box.
 	 */
-
-
-    /*@ public invariant	  
-	  @ cursorPosition == content.length - 1;
-	  @*/
-	private int cursorPosition;
+	private /*@ spec_public @*/ int cursorPosition;
 
 	/**
 	 * This array stores the contents of the text box. At every position
 	 * before the cursor, there is a valid value (i.e. a single digit).
 	 * Positions after the cursor must be EMPTY.
 	 */
-
-    /*@ public invariant
-	  @ (\forall int i; 0 <= i && i < cursorPosition; content[i] == canvas.length);
-	  @*/
-	private int[] content;
+	private /*@nullable@*/ /*@ spec_public @*/ int[] content;
 
 	/**
 	 * Holds the current TextBoxRenderer. This can be null, which means that there
 	 * is no renderer assigned.
 	 */
-	private TextBoxRenderer textBoxRenderer;
+	private /*@nullable@*/ /*@ spec_public @*/ TextBoxRenderer textBoxRenderer;
 
 	/* EMPTY variable */
 	private final int EMPTY = -1;;
@@ -85,7 +108,12 @@ class NumericTextBoxData
 	 *
 	 * @param input The input character.
 	 * @return true if the input is a single digit, false otherwise.
-	 */
+	 *	
+	 *
+	/*@ public normal_behaviour
+	  @ requires true;
+	  @ ensures true;
+	  @*/
 	public boolean isSingleDigit(char input)
 	{
 		return Character.isDigit(input) ? true : false;
@@ -102,7 +130,28 @@ class NumericTextBoxData
 	 *
 	 * @throws RuntimeException if the input was valid, but the cursor is at the end
 	 *                          of the text box and no further input can be accepted.
-	 */
+	 *
+	/*@ public normal_behaviour
+	  @ requires content != null && textRenderer != null;
+	  @ ensures true;
+  	  @ assignable content[cursorPosition], cursorPosition, textBoxRenderer.contentChanged;
+	  @	
+	  @ also
+	  @
+	  @ public exceptional_behaviour
+	  @ requires true
+	  @ signals_only IllegalArgumentException;
+	  @ signals (IllegalArgumentException) textBoxRenderer.showError == true;
+	  @ assignable textBoxRenderer.showError;
+	  @
+	  @ also
+	  @
+	  @ public exceptional_behaviour
+	  @ requires cursorPosition == content.length;
+	  @ signals_only RuntimeException ;
+	  @ signals (RuntimeException) textBoxRenderer.showError == true;
+	  @ assignable textBoxRenderer.showError;
+	  @*/
 	public void enterCharacter(char input)
 	{
 		if ( !isSingleDigit(input) ) {
@@ -113,7 +162,7 @@ class NumericTextBoxData
 
 		else if ( cursorPosition == content.length ) {
 			textBoxRenderer.showError = true;
-			throw new IllegalArgumentException("[FULL] Cannot append data ");
+			throw new RuntimeException("[FULL] Cannot append data ");
 		}
 
 		else {
@@ -134,7 +183,21 @@ class NumericTextBoxData
 	 * @throws RuntimeException if the cursor is at the very beginning. In this case
 	 *                          the showError flag of the TextBoxRenderer is set
 	 *                          before the exception is thrown.
-	 */
+	 *
+	/*@ public normal_behaviour
+	  @ requires content != null && textRenderer != null;
+	  @ ensures content[cursorPosition] == -1;
+	  @ ensures cursorPosition == \old(cursorPosition) - 1;
+   	  @ assignable content[cursorPosition], cursorPosition, textBoxRenderer.contentChanged;
+	  @
+	  @ also
+	  @
+	  @ public exceptional_behaviour
+	  @ requires cursorPosition == 0;
+	  @ signals_only RuntimeException;
+	  @ signals (RuntimeException) textBoxRenderer.showError == true;
+	  @ assignable textBoxRenderer.showError;
+	  @*/
 	public void backspace()
 	{
 	
@@ -156,9 +219,14 @@ class NumericTextBoxData
 	 * Clears the text box and resets the cursor to the start.
 	 * Also sets the contentChanged flag of the current TextBoxRenderer, if any.
 	 */
+	/*@ public normal_behaviour
+	  @ requires content != null && textRenderer != null;;
+	  @ ensures ( \forall int i; 0 <= i && i < content.length; content[i] == -1 );
+	  @ ensures cursorPosition == 0;
+	  @ assignable content[*], cursorPosition, textBoxRenderer.contentChanged;
+	  @*/
 	public void clear()
 	{
-	
 		/* Re-initalize cursorPosition to zero */
 		cursorPosition = 0;
 
@@ -172,6 +240,10 @@ class NumericTextBoxData
 	/**
 		Wrapper method for textBoxRender renderContent() method
 	 */
+	/*@ public normal_behaviour
+	  @ requires content != null && textRenderer != null;;
+	  @ ensures true;
+	  @*/
 	public void renderContent()
 	{
 		textBoxRenderer.renderContent(content, cursorPosition);
@@ -180,6 +252,10 @@ class NumericTextBoxData
 	/**
 		Wrapper method for textBoxRender renderError() method
 	 */
+	/*@ public normal_behaviour
+	  @ requires textRenderer != null;
+	  @ ensures true;
+	  @*/
 	public void renderError(String errorMessage)
 	{
 		textBoxRenderer.renderError(errorMessage);
@@ -189,6 +265,10 @@ class NumericTextBoxData
 	/**
 		Wrapper method for textBoxRender renderContent() method
 	*/
+	/*@ public normal_behaviour
+	  @ requires textRenderer != null;
+	  @ ensures true;
+	  @*/
 	public void closeRenderer()
 	{
 		textBoxRenderer.closeRenderer();
@@ -196,8 +276,8 @@ class NumericTextBoxData
 }
 
 /**
- * This class represents a renderer that is responsible for displaying the
- * text box to the user in some way.
+ * This class implements a renderer that is responsible for displaying the
+ * NumericTextBoxData data to the user.
  */
 class TextBoxRenderer
 {
@@ -291,7 +371,9 @@ class TextBoxRenderer
 }
 
 /** 
-	This class contains the main() method 
+	This class contains the main() method. User interaction is implemented as a simple 
+	command line interface (CLI). User data is handled by the NumericTextBoxData class, 
+	and is rendered dynamically with the help of the TextBoxRenderer auxiliary class.
 */
 public class NumericTextBox 
 {
