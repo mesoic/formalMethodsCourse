@@ -1,0 +1,324 @@
+Formal Methods in Software Development (TDA294 / DIT271): Lab2
+
+Problem 1: Verification of Propositional Logic Formula 
+
+	In this problem, KeY is to be used to develop a proof of a propositional logic formula. In addition to its primary function as a symbolic execution environment and theorem prover for Java programs, KeY allows users to operate on Propositional Logic (PL) formulae directly. The process flow for doing this is as follows. 
+
+		1) Translate PL formula into problem statement for KeY. This requires the user to specify:
+			- Sorts(Types): These are symbolic types
+			- Functions: Mapping of types to types
+			- Predicates: Mapping of types to booleans
+			- Problem: The statement of the forumla to be proved 
+		
+		2) Import problem statement into KeY 
+			- This expresses the formula as a sequent to be proven
+		
+		3) Apply calculus rules to close a proof
+
+	When importing formulae into KeY, as a general rulse the sequent has zero terms on the LHS, and one term on the RHS (the statemenet to be proven). Recall that the basic semantic interpretation of a sequent is that if all things on the LHS are true, then one thing on the RHS is true. Proof strategies often involve moving things from the RHS to the LHS and then seeking closure rules. 
+
+	In this problem, several files are provided in the trafficLight/ directory. 
+
+		1) trafficLight.key: The proper formulation of the PL formula in KeY format
+
+		2) traficLight-autorun.proof: A proof supplied by the KeY tool automatic prover. This is included as a sanity check to ensure that trafficLight.key has been properly formulated. 
+
+		3) trafficLight.proof: A manual proof of the problem formulation using basic rules of PL
+
+		4) trafficLight.stats.csv: Statistics from manual proof method
+
+	Proof strategy: In this case, the strategy for proving involves the following steps
+
+		1) All subforumlae involving quantifiers over i(x,y) are instantiated with i(x_0, y_0)
+
+		2) Proof is simplified ussing basic rules 
+
+		3) The formula involving r(x), !r(x), g(x), !g(x) is instantiated to x_0 or y_0, depending on proof branch 
+
+		4) The \exists x; r(z) on the RHS is instantiated to x_0 or y_0, as needed in order to close the proof branch
+
+	Note that the proofs resulting from automatic solving and manual solving result in very different proof trees. 
+
+
+Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ using Key
+
+	The problem involves verfying the behavior of the performBinarySearch method within the BinarySearch class via KeY symbolic execution. 
+
+		public int performBinarySearch() {
+			report("Eliminating duplicates.");
+			eliminateDuplicates(numbers);
+			report("Searching for " + query);
+			int searchResult = search();
+			return searchResult;
+		}
+
+	Since this method involves calls to other methods, the problem may be distilled into the development of a strategy for handling each method call. In order to do this, the decisions regarding each method call are shown below, based on the JML specification for each method. The decision to be made involves how to account for method calls in the proof. In general, a binary decision must be taken on how to account for method calls. 
+
+		1) inline expansion (method call): this strategy involves pasting the code of the method directly in the modality and executing symboliclly. This method is appropriate when one does NOT want to rely on the JML contract provided, but rather the implementation of the method as expressed in the code.  
+
+		2) method contract: this strategy involves the transaltion of the JML method contract into dynamic logic (DL) and pasting the resulting (DL) into the proof obligation. It is important to note that this strategy ASSUMES that the method does what the JML contract says it does (suggesting that an additional proof step is required in order to determine whether the method does indeed fulfill the contract). This strategy of relying on contracts is useful when one wishes to abstract away the details of the implementations. 
+
+	With respect to the methods in performBinarySearch(), the following strategies apply:
+
+		1) report(): Upon examination, we see that the report method does not add anything significant to the binary search algorithm. It is used primarily for user information output. Because of this, when encountering report() in proofs, it is enough to perform "inline" symbolic execution of the method. 
+
+			public void report(String message) {
+				// print the message...
+				return;
+			}
+
+		2) eliminateDuplicates: The elimiate duplicates method removes duplicate entries from the array being searched. Because the algorithm involves a while loop, and no loop invariants are specified in the code, it is necessary to rely on the method contract when encountering eliminateDuplicates() in the proof. 
+
+			private void eliminateDuplicates(int[] numbers) {
+		
+				int i = 0;
+				while (i < numbers.length - 1) {
+					...
+				}
+			}
+
+		3) search(): The search() method performs the binary search on an array of unique elements. Like eliminateDuplicates(), search() also contains an unspecified while() loop, so it is necessary to rely on the method contract for proof obligations.
+
+			private int search() {
+		
+				int leftIndex = 0;
+				int rightIndex = size;
+
+				while (leftIndex <= rightIndex) { 
+					...
+				}
+			}
+
+	Proof Results for /* normal_behaviour */: 
+
+		Proceeding in accordance with the methodolgy outlined above, proofs have been supplied for the performBinarySearch() method. Particlar attention must be made to the branching that occurs within the JML specification regarding normal behaviour. In this case, a simple branching occurs for search() as two specifications are provided. A separate proof must be provided for each branch.
+
+		Proof Strategy: performBinarySearch()
+
+			report("Eliminating duplicates.");
+			|	method_call
+
+			eliminateDuplicates(numbers);
+			|	method_conract /* normal_behaviour */ 
+
+			report("Searching for " + query);
+			|	method_call
+
+			int searchResult = search();
+			|	method_conract /* normal_behaviour */ (version1 - result found)
+			|	method_conract /* normal_behaviour */ (version2 - result NOT found)
+
+
+		1) method_conract /* normal_behaviour */ (version1 - result found)
+
+			Using the initial file "binarySearch-original.java", the proof fails to close on the precondition of the search() function. Upon examination of the JML contract, we find the following line: 
+
+				@ requires (\exists int n; 0 <= n && n <= size; numbers[n] == query);
+
+			This states that there exists a valid array index [n] for which the numbers[n] is equal to the item we are looking for. This is, of course, not a logical precondition for the search() function, as we do not know beforehand if an element is in the array or not. Upon removing this line from the specification, a proof closes. 
+
+		2) method_conract /* normal_behaviour */ (version1 - result NOT found) 
+
+			Again looking at the initial file "binarySearch-original.java", the proof also fails to close on the precondition of the search function. Looking at the JML contract we find a similar error in the method specification:
+
+				@ requires (\forall int i; i >= 0 && i <= size; numbers[i] != query);
+
+			This states as a precondition to search, that we there exists no element in the numbers array that is equal to query. Similar to the previous case, this is not a valid precondition to the search() function, as we do not know this to be true prior to actually doing the search. Upon removing this line from the specification, a proof closes. 
+
+		The final specification for the search function is as follows: 
+
+			/*@
+			  @ public normal_behavior
+			  @ requires numbers != null;
+			  @ requires (\forall int m,j; m >= 0 && m < j && j <= size; numbers[m] < numbers[j]);
+			  @ ensures \result != -1 && numbers[\result] == query;
+			  @ assignable \nothing;
+			  @
+			  @ also
+			  @
+			  @ public normal_behavior
+			  @ requires (\forall int i,j; i >= 0 && i < j && j <= size; numbers[i] < numbers[j]);
+			  @ ensures \result == -1;
+			  @ assignable \nothing;
+			  @
+			  @ also
+			  @
+			  @ public exceptional_behaviour
+			  @ requires (\exists int i,j; i >= 0 && i < j && j <= size; numbers[i] > numbers[j] || numbers[i] == numbers[j]);
+			  @ signals_only RuntimeException;
+			  @ assignable \nothing;
+			  @*/
+			private int search() { ... }
+
+		The following files contain the documented changes, as well as proofs
+		|	binarySearch-modified.java
+		|	performBinarySearch-modified-normalBehaviour0.proof
+		|	performBinarySearch-modified-normalBehaviour1.proof
+		
+
+Problem 3.1: Verification of performBinarySearch method /* exceptional_behaviour */ using Key
+
+	The problem statement indicates that the the exceptonal_behaviour of the eliminateDuplicates() method does not meet the specification. For reference, the code below includes the exceptional behaviour part of the JML contract, as well as the method body that we are trying to verify.
+
+		/*@
+		  @ public exceptional_behaviour
+		  @ requires numbers.length == 0 && numbers != null;
+		  @ signals_only RuntimeException;
+		  @ signals (RuntimeException) size == -1;
+		  @ assignable size;
+		  @*/
+		private void eliminateDuplicates(int[] numbers) {
+
+			int i = 0;
+			while (i < numbers.length - 1) {
+				if (i >= size)
+					break;
+				if (numbers[i] == numbers[i + 1]) {
+					int j = i + 1;
+					while (j < numbers.length - 1) {
+						numbers[j] = numbers[j + 1];
+						j++;
+					}
+					numbers[numbers.length - 1] = 0;
+					size--;
+				}
+				i++;
+			}
+		}
+
+	The "requires" class indicates the preconditions upon which exceptional_behaviour is expected. In this case, we expect exceptional behaviour when the length of the input array is zero (and the array is not null, meaning it has been initialized). This would occur if the user passed an empty int[] array to the method. When this is the case, the "signals_only" class specifies that the method throws a "RuntimeException". Looking at the code, we see that this can only occur if the method throws a "IndexOutOfBoundsException" for array access - noting that a "IndexOutOfBoundsException" sub-classes "RuntimeException". The "signals (RuntimeException)" class specifies as a postcondition of expetional behavoiur, that the size field of the BinarySearch class should be equal to -1. Finally, the "assignable" class indicates that the "size" field can be set by the method. Translating the JML statements into pseudo-code, we have the following interpretation.
+
+		/*@
+		  @ public exceptional_behaviour
+		  @ requires <numbers[] array to be of length zero and not null>
+		  @ signals_only <method tries to access out of bounds element of the array e.g. numbers[-1] or numbers[1]>
+		  @ signals (RuntimeException) <size should be equal to -1 after method terminates>
+		  @ assignable <the method can assign values to the size>
+		  @*/
+
+	Looking at the code, we see that the reason that it will not verify is that the code does not throw an exception if numbers.length == 0. Specifically, looking at the guard of the while() statement. 
+	
+		int i = 0;
+		while (i < numbers.length - 1) {}
+
+	We see that if numbers.length == 0, then this is is equivalent to:
+
+		while ( 0 < -1 ) {}
+		while ( false )
+
+	Thus, in the case of numbers.length == 0, the method will not enter the while() loop, so no "IndexOutOfBoundsException" will be thrown. In this case, the specification fails to meet the method behaviour, so we expect KeY to not be able to verify the specification in the case of "exceptional_behaviour". In order to fix the method, we need the method to enter the while loop, when numbers.length == 0, and we need the method to do so without breaking the "normal_behaviour" of the method. We can do this by simply trying to access an array element prior to proceeding with the while() loop, thereby relying on Java internals to take care of the exception throwing for us. 
+
+
+		private void eliminateDuplicates(int[] numbers) {
+
+		/* 
+			Try to access the first array element. This line throws an IndexOutOfBoundsException if 
+			numbers.length == 0. Since this is a RuntimeException, exceptional_behaviour should verify.
+			Since the class constructor sets size == -1 so the postcondition should hold. However, in 
+			verification we will only verify the exceptional_behaviour of this method (i.e. symbolic 
+			execution will not visit the class constructor), so we will explicitly set size == -1 in 
+			order to have the post condition hold.
+		*/
+		size = -1;
+		int e = numbers[0];
+
+		/* Proceed with normal behaviour */
+		int i = 0;
+		while (i < numbers.length - 1) { ... }
+
+	In this case, we also set the proof search strategy "MethodTreatment = Contract". Proceeding as such facilitates successful verification of the elimiateDuplicates() method.
+
+		The following files contain the documented changes, as well as proofs
+		|	binarySearch-modified.java
+		|	eliminateDuplicates-modified-exceptionalBehaviour0.proof
+
+
+Problem 3.3: Verification of Drawing class - Class invariants and Loop invariants
+
+	The problem consists of verifying methods in the Java class "Drawing.java". This class describes a "canvas" object upon which one can "draw" horizontal or vertical lines. The canvas is represented via of a 2-dimensional array of booleans, and drawing consists of setting element values to "true" within the 2-dimensional array. Methods are provided which allow the user to "draw" horizontal and vertical lines. The code specifies two class-invariants which should hold under any conditions of program execution.
+
+		Class Invariant 1: the canvas must be square
+
+			private /*@ spec_public @*/ boolean[][] canvas;
+			/*@ public invariant
+			  @ (\forall int i; 0 <= i && i < canvas.length; canvas[i].length == canvas.length);		
+			  @*/
+
+
+		Class Invariant 2: the canvas only supports drawing in rows and columns	  
+
+			private /*@ spec_public @*/ boolean[][] canvas;
+			/*@ public invariant
+			  @ (\forall int i,j;
+			  @		0 < i && 0 < j && i < canvas.length-1 && j < canvas[0].length-1;
+			  @		canvas[i][j] ==> (canvas[i][j-1] && canvas[i][j+1] || canvas[i-1][j] && canvas[i+1][j]));		
+			  @*/
+
+	Before starting the following values must be set under "proof search strategy" to ensure a manual interaction environment within KeY. When symbolic execution reaches a call to another method, or a loop, one must perform interactive steps in order to continue with the proof. 
+
+		{
+			"Method Treatment" 			: "None"
+			"Loop Treatment" 	 		: "None"
+			"One Step Simplification" 	: "Enabled"
+		}
+
+
+	a. Prove that the method drawMultiple() preserves the invariants. For this example, the following is set for "Proof Search Strategy"
+		
+		{
+			"Class axiom rule"			: "Delayed"
+		}
+
+		The drawMultiple method is straightforward to verify as it only requires the user to properly invoke the method contracts for the drawVertical() and drawHorizontal() methods. Note that for this, one does not need to interact with the loop_invariant in the drawVertical() method. One simply relies on the method contracts when constructing the proof obligations.
+
+			/*@ public normal_behaviour
+			  @ requires 0 < canvas.length;
+			  @ ensures true;
+			  @*/
+			public void drawMultiple(){
+				drawVertical(0);
+				drawHorizontal(0);
+			}	 
+
+	b. Prove that the method drawVertical(int depth) preserves the class invariants. Note that JML assumes the class invariants when importing into KeY, so one only needs to verify the normal_behaviour of the JML contract for drawVertical(). Below shows the original code for drawVertical(), which contains a mistake in the loop_invariant.
+
+		/*@ public normal_behaviour
+		  @ requires depth >= 0 && depth < canvas.length;
+	 	  @ ensures true;
+		  @*/
+		public void drawVertical(int depth){
+
+			int i = 0;
+		
+			/*@ loop_invariant
+			  @ 0 <= i && i < canvas[depth].length && (\forall int x; 0 <= x && x < i; canvas[depth][x] == true );
+			  @ assignable canvas[depth][*];
+			  @ decreasing (canvas[depth].length) - i;
+			  @*/
+			while(i < canvas[depth].length){
+					canvas[depth][i] = true;
+					i++;
+			}
+		}
+
+	When invoking the loop invariant, one obtains three branches in the proof obligation, each of which must close in order for the proof to close. Below relates the closure status of each branch of the proof obligation for the loop_invariant.
+
+		{
+			"Invariant Initially Valid" 	: "Closed
+			"Body Preserves Invariant 		: "Unclosed" 
+			"Use Case"						: "Closed"
+		}
+
+	Upon examining the code, one can see that a mistake to a common program pattern has been introduced in the code.
+
+		(error) 	@ 0 <= i && i <  canvas[depth].length && (\forall int x; 0 <= x && x < i; canvas[depth][x] == true );
+		(correct) 	@ 0 <= i && i <= canvas[depth].length && (\forall int x; 0 <= x && x < i; canvas[depth][x] == true );
+
+	This causes the proof to fail upon closure. The reason is that the loop invariant must hold AFTER the execution of every iteration of the loop. Upom the final iteration (when program execution exits the loop body), we have that (i == canvas[depth].length). However, this case is not expressed in the errored loop invariant. It does not hold in the after the guard to exit the while() loop evaluates to TRUE, hence the proof obligation fails in this case.
+
+ 		The following files contain the documented changes, as well as proofs
+		|	drawing-modified.java 
+		| 	drawMultiple-auto-normalBehaviour0.proof
+		|	drawMultiple-normalBehaviour0.proof	
+		|	drawVertical-normalBehaviour0.proof	
+
