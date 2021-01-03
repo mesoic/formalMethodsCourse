@@ -416,4 +416,35 @@ Problem 4: Development of verified Java application including JML method contrac
 
 	4d: JML method contracts and proof obligations for the NumericTextBoxData class.
 
+		
 
+			private /*@ spec_public @*/ int cursorPosition;
+
+			private /*@nullable@*/ /*@ spec_public @*/ int[] content;
+
+			private /*@nullable@*/ /*@ spec_public @*/ TextBoxRenderer textBoxRenderer;
+
+		Example JML method contract: 
+
+
+			/*@ public normal_behaviour
+			  @ requires content != null && textRenderer != null;
+			  @ ensures true;
+			  @ assignable content[cursorPosition], cursorPosition, textBoxRenderer.contentChanged;
+			  @	
+			  @ also
+			  @
+			  @ public exceptional_behaviour
+			  @ requires true
+			  @ signals_only IllegalArgumentException;
+			  @ signals (IllegalArgumentException) textBoxRenderer.showError == true;
+			  @ assignable textBoxRenderer.showError;
+			  @
+			  @ also
+			  @
+			  @ public exceptional_behaviour
+			  @ requires cursorPosition == content.length;
+			  @ signals_only RuntimeException ;
+			  @ signals (RuntimeException) textBoxRenderer.showError == true;
+			  @ assignable textBoxRenderer.showError;
+			  @*/
