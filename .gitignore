@@ -1,3 +1,6 @@
+# zip files
+zip/
+
 # Promela, pan files, never claims, and trail
 pan*
 *.tmp
@@ -7,6 +10,9 @@ pan*
 # Extras
 # Report_Philosophers.txt
 debug.txt
+
+# Java .class files 
+*.class
 
 # Other files to exclude
 Philosophers_Passing_Sim.pml
