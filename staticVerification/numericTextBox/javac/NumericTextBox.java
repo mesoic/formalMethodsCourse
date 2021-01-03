@@ -28,6 +28,10 @@ class NumericTextBoxData{
 	  @ 		(\forall int i; cursorPosition <= i && i < content.length; content[i] == EMPTY || content[i] == 0);
 	  @*/
 
+	/* class invariants: the class constructor must be verified without class invariants.
+	 * 					 all other class methods are verified including all invariants.
+	 */
+
 	/**
 	 * This array stores the contents of the text box. At every position
 	 * before the cursor, there is a valid value (i.e. a single digit).
@@ -52,8 +56,8 @@ class NumericTextBoxData{
 	private final /*@ spec_public @*/ int EMPTY = -1;
 
 	/*@ public normal_behaviour
-	  @ requires true;
-	  @ ensures true;
+	  @ requires size > 0; 
+	  @ ensures (\forall int x; 0 <= x && x < content.length; content[x] == EMPTY );
 	  @*/
 	public NumericTextBoxData(int size){
 		

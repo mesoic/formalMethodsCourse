@@ -4,41 +4,36 @@ Problem 1: Verification of Propositional Logic Formula
 
 	In this problem, KeY is to be used to develop a proof of a propositional logic formula. In addition to its primary function as a symbolic execution environment and theorem prover for Java programs, KeY allows users to operate on Propositional Logic (PL) formulae directly. The process flow for doing this is as follows. 
 
-		1) Translate PL formula into problem statement for KeY. This requires the user to specify:
+		a) Translate PL formula into problem statement for KeY. This requires the user to specify:
 			- Sorts(Types): These are symbolic types
 			- Functions: Mapping of types to types
 			- Predicates: Mapping of types to booleans
 			- Problem: The statement of the forumla to be proved 
 		
-		2) Import problem statement into KeY 
+		b) Import problem statement into KeY 
 			- This expresses the formula as a sequent to be proven
 		
-		3) Apply calculus rules to close a proof
+		c) Apply calculus rules to close a proof
 
 	When importing formulae into KeY, as a general rulse the sequent has zero terms on the LHS, and one term on the RHS (the statemenet to be proven). Recall that the basic semantic interpretation of a sequent is that if all things on the LHS are true, then one thing on the RHS is true. Proof strategies often involve moving things from the RHS to the LHS and then seeking closure rules. 
 
-	In this problem, several files are provided in the trafficLight/ directory. 
-
-		1) trafficLight.key: The proper formulation of the PL formula in KeY format
-
-		2) traficLight-autorun.proof: A proof supplied by the KeY tool automatic prover. This is included as a sanity check to ensure that trafficLight.key has been properly formulated. 
-
-		3) trafficLight.proof: A manual proof of the problem formulation using basic rules of PL
-
-		4) trafficLight.stats.csv: Statistics from manual proof method
-
 	Proof strategy: In this case, the strategy for proving involves the following steps
 
-		1) All subforumlae involving quantifiers over i(x,y) are instantiated with i(x_0, y_0)
+		a) All subforumlae involving quantifiers over i(x,y) are instantiated with i(x_0, y_0)
 
-		2) Proof is simplified ussing basic rules 
+		b) Proof is simplified ussing basic rules 
 
-		3) The formula involving r(x), !r(x), g(x), !g(x) is instantiated to x_0 or y_0, depending on proof branch 
+		c) The formula involving r(x), !r(x), g(x), !g(x) is instantiated to x_0 or y_0, depending on proof branch 
 
-		4) The \exists x; r(z) on the RHS is instantiated to x_0 or y_0, as needed in order to close the proof branch
+		d) The \exists x; r(z) on the RHS is instantiated to x_0 or y_0, as needed in order to close the proof branch
 
 	Note that the proofs resulting from automatic solving and manual solving result in very different proof trees. 
 
+	The solution to this problem is documented in the following files
+	|	trafficLight/trafficLight.key: The proper formulation of the PL formula in KeY format
+	|	trafficLight/traficLight-autorun.proof: A proof supplied by the KeY tool automatic prover (sanity check) 
+	|	trafficLight/trafficLight.proof: A manual proof of the problem formulation using basic rules of PL
+	|	trafficLight/trafficLight.stats.csv: Statistics from manual proof method
 
 Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ using Key
 
@@ -54,20 +49,20 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 
 	Since this method involves calls to other methods, the problem may be distilled into the development of a strategy for handling each method call. In order to do this, the decisions regarding each method call are shown below, based on the JML specification for each method. The decision to be made involves how to account for method calls in the proof. In general, a binary decision must be taken on how to account for method calls. 
 
-		1) inline expansion (method call): this strategy involves pasting the code of the method directly in the modality and executing symboliclly. This method is appropriate when one does NOT want to rely on the JML contract provided, but rather the implementation of the method as expressed in the code.  
+		a) inline expansion (method call): this strategy involves pasting the code of the method directly in the modality and executing symboliclly. This method is appropriate when one does NOT want to rely on the JML contract provided, but rather the implementation of the method as expressed in the code.  
 
-		2) method contract: this strategy involves the transaltion of the JML method contract into dynamic logic (DL) and pasting the resulting (DL) into the proof obligation. It is important to note that this strategy ASSUMES that the method does what the JML contract says it does (suggesting that an additional proof step is required in order to determine whether the method does indeed fulfill the contract). This strategy of relying on contracts is useful when one wishes to abstract away the details of the implementations. 
+		b) method contract: this strategy involves the transaltion of the JML method contract into dynamic logic (DL) and pasting the resulting (DL) into the proof obligation. It is important to note that this strategy ASSUMES that the method does what the JML contract says it does (suggesting that an additional proof step is required in order to determine whether the method does indeed fulfill the contract). This strategy of relying on contracts is useful when one wishes to abstract away the details of the implementations. 
 
 	With respect to the methods in performBinarySearch(), the following strategies apply:
 
-		1) report(): Upon examination, we see that the report method does not add anything significant to the binary search algorithm. It is used primarily for user information output. Because of this, when encountering report() in proofs, it is enough to perform "inline" symbolic execution of the method. 
+		a) report(): Upon examination, we see that the report method does not add anything significant to the binary search algorithm. It is used primarily for user information output. Because of this, when encountering report() in proofs, it is enough to perform "inline" symbolic execution of the method. 
 
 			public void report(String message) {
 				// print the message...
 				return;
 			}
 
-		2) eliminateDuplicates: The elimiate duplicates method removes duplicate entries from the array being searched. Because the algorithm involves a while loop, and no loop invariants are specified in the code, it is necessary to rely on the method contract when encountering eliminateDuplicates() in the proof. 
+		b) eliminateDuplicates: The elimiate duplicates method removes duplicate entries from the array being searched. Because the algorithm involves a while loop, and no loop invariants are specified in the code, it is necessary to rely on the method contract when encountering eliminateDuplicates() in the proof. 
 
 			private void eliminateDuplicates(int[] numbers) {
 		
@@ -77,7 +72,7 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 				}
 			}
 
-		3) search(): The search() method performs the binary search on an array of unique elements. Like eliminateDuplicates(), search() also contains an unspecified while() loop, so it is necessary to rely on the method contract for proof obligations.
+		c) search(): The search() method performs the binary search on an array of unique elements. Like eliminateDuplicates(), search() also contains an unspecified while() loop, so it is necessary to rely on the method contract for proof obligations.
 
 			private int search() {
 		
@@ -109,7 +104,7 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 			|	method_conract /* normal_behaviour */ (version2 - result NOT found)
 
 
-		1) method_conract /* normal_behaviour */ (version1 - result found)
+		a) method_conract /* normal_behaviour */ (version1 - result found)
 
 			Using the initial file "binarySearch-original.java", the proof fails to close on the precondition of the search() function. Upon examination of the JML contract, we find the following line: 
 
@@ -117,7 +112,7 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 
 			This states that there exists a valid array index [n] for which the numbers[n] is equal to the item we are looking for. This is, of course, not a logical precondition for the search() function, as we do not know beforehand if an element is in the array or not. Upon removing this line from the specification, a proof closes. 
 
-		2) method_conract /* normal_behaviour */ (version1 - result NOT found) 
+		b) method_conract /* normal_behaviour */ (version1 - result NOT found) 
 
 			Again looking at the initial file "binarySearch-original.java", the proof also fails to close on the precondition of the search function. Looking at the JML contract we find a similar error in the method specification:
 
@@ -151,9 +146,9 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 			private int search() { ... }
 
 		The following files contain the documented changes, as well as proofs
-		|	binarySearch-modified.java
-		|	performBinarySearch-modified-normalBehaviour0.proof
-		|	performBinarySearch-modified-normalBehaviour1.proof
+		|	binarySearch/binarySearch-modified.java
+		|	binarySearch/proofs/performBinarySearch-modified-normalBehaviour0.proof
+		|	binarySearch/proofs/performBinarySearch-modified-normalBehaviour1.proof
 		
 
 Problem 2: Definition of JML contracts 
@@ -241,15 +236,14 @@ Problem 3.3: Verification of Drawing class - Class invariants and Loop invariant
 
 	The problem consists of verifying methods in the Java class "Drawing.java". This class describes a "canvas" object upon which one can "draw" horizontal or vertical lines. The canvas is represented via of a 2-dimensional array of booleans, and drawing consists of setting element values to "true" within the 2-dimensional array. Methods are provided which allow the user to "draw" horizontal and vertical lines. The code specifies two class-invariants which should hold under any conditions of program execution.
 
-		Class Invariant 1: the canvas must be square
+		1) The canvas must be square
 
 			private /*@ spec_public @*/ boolean[][] canvas;
 			/*@ public invariant
 			  @ (\forall int i; 0 <= i && i < canvas.length; canvas[i].length == canvas.length);		
 			  @*/
 
-
-		Class Invariant 2: the canvas only supports drawing in rows and columns	  
+		2) The canvas only supports drawing of rows and columns	  
 
 			private /*@ spec_public @*/ boolean[][] canvas;
 			/*@ public invariant
@@ -321,130 +315,192 @@ Problem 3.3: Verification of Drawing class - Class invariants and Loop invariant
 	This causes the proof to fail upon closure. The reason is that the loop invariant must hold AFTER the execution of every iteration of the loop. Upom the final iteration (when program execution exits the loop body), we have that (i == canvas[depth].length). However, this case is not expressed in the errored loop invariant. It does not hold in the after the guard to exit the while() loop evaluates to TRUE, hence the proof obligation fails in this case.
 
  		The following files contain the documented changes, as well as proofs
-		|	drawing-modified.java 
-		| 	drawMultiple-auto-normalBehaviour0.proof
-		|	drawMultiple-normalBehaviour0.proof	
-		|	drawVertical-normalBehaviour0.proof	
+		|	drawingClass/drawing-modified.java 
+		| 	drawingClass/proofs/drawMultiple-auto-normalBehaviour0.proof
+		|	drawingClass/proofs/drawMultiple-normalBehaviour0.proof	
+		|	drawingClass/proofs/drawVertical-normalBehaviour0.proof	
 
 
 Problem 4: Development of verified Java application including JML method contracts and method proofs using the KeY tool
 
 	This problem aims at a synthesis of the previous working examples using KeY. In this example, a simple application modelling a "numeric text box" is developed in Java. The application accepts charachters (or strings) as input from a simple command line interface (CLI), and places them in a data structure. With each new input, the data structure is rendered into a visual text box using a simple graphical user interface (javax.swing library). The application models text box data as a fixed length array of integers [0-9], and exception handling is structured such that the text box only accepts single digits as input. JML class invariants are developed in order to ensure integrity of the data structure at the class level, and JML method contracts are developed in order to ensure consistency of normal_behaviour and exceptional_behaviour handling. 
 
-	4a: Application structure 
+	4.1: Application structure 
 
-		The program has been organised into three classes which handle data opertaion. Note that the NumericTextBoxData class will be the target of verification efforts using KeY. 
+		The program has been organised into three classes which handle data opertaion. All application class files are included in teh numericTextBox/javac directory. Note that the NumericTextBoxData class will be the target of verification efforts using KeY, and that verification efforts are carried out as a separate sub-process to application development. 
 
 		Application structure:
 		| NumericTextBox: Contains the main function which implements the (CLI). Passes user input to NumericTextBoxData.
 		| NumericTextBoxData: Contains data structure and associated update methods. Also interacts with TextBoxRenderer.  
 		| TextBoxRenderer: Implements a simple graphical user interface to display NumericTextBoxData to the user. 
 		
-	4b: NumericTextBoxData implementation details
+	4.2: NumericTextBoxData implementation details
 
 		This class contains the data structure for the application and is the primary target for verification efforts. JML class invariants and method contracts are proposed for all methods in this class, and KeY proofs are supplied in non-trivial cases. The basic structure of the class involves two quantities. 
 
-			1) An integer array to hold our text box digits. Note that integer arrays in Java are fixed length. Entries into the array "content" must be single integer digits [0-9], and empty positions in the array are represented by the EMPTY macro variable (private final int EMPTY = -1;)
+			a) An integer array to hold our text box digits. Note that integer arrays in Java are fixed length. Entries into the array "content" must be single integer digits [0-9], and empty positions in the array are represented by the EMPTY macro variable (private final int EMPTY = -1;)
 
 				private int[] content;
 
-			2) An integer which indexes the position of the first empty index in the array. 
+			b) An integer which indexes the position of the first empty index in the array. 
 
 				private int cursorPosition;
 
 		Note that these values are initialized in the class constructor (which is invoked by the CLI class containing the application main() method - NumericTextBox). 
 
-			public NumericTextBoxData(int dataLength) {
+			public NumericTextBoxData(int size){
+				
+				/* Create new content array */
+				content = new int[size];
 
-				/* Initialize int data array */
-				content = new int[dataLength];
-
-				/* Re-initalize cursorPosition to zero */
-				cursorPosition = 0;
-
-				/* Fill array data with -1 */
-				Arrays.fill(content, EMPTY);	
-
-				/* Initialize the renderer */
-				textBoxRenderer	= new TextBoxRenderer();
+				/* Initialize (cursorPosition = 0) and (content[*] = EMPTY) */
+				clear();
 
 				/* Force render the initial content */
 				textBoxRenderer.contentChanged = true;
 				textBoxRenderer.renderContent(content, cursorPosition);
 			}
-
+	
 		As a user enters digits the array is populated, beginning at content[0] and continuing with content[1], content[2] etc. The cursorPosition variable always stores the index of the next EMPTY position in the array. Note that when the array is full, that cursorPostion = content.length (this is important to consider when consturcting JML invariants). The NumericTextBoxData class also has several methods which facilitate this user interaction. 
 
-			1) public void enterCharacter(char input): 
+			a) public void enterCharacter(char input): 
 
 				Take user input in the form of a single charachter. If the charachter is a digit [0-9] it is added to the content and the cursor position is advanced by one. If the charachter is not a digit, an IllegalArgumentException is thrown, and if the array is full a RuntimeException is thrown. 
 	
-			2) public void backspace()
+			b) public void backspace()
 
 				Removes a digit from content, and decrements the cursorPosition by one. If content is empty, a RuntimeException is thrown.
 
-			3) public void clear()
+			c) public void clear()
 
 				Removes all content from content (sets all elements to EMPTY), and sets cursorPosition to zero. 
 
 		Each method also sets boolean values which tell the TextBoxRenderer how to render the content. If the entry is valid, the entire content array is displayed in the TextBoxRenderer. If an exception is thrown, the TextBoxRenderer displays the error message in red text. Additionally, the NumericTextBoxData class also has a few wrapper methods which allow the display methods of the TextBoxRenderer class to be called within the scope of the NumericTextBoxData class. 
 
 
-	4c: JML class invariants for the NumericTextBoxData class.
+	4.3 JML class invariants for the NumericTextBoxData class.
 
 		JML is used to define class invariants for the behaviour of the content array and cursor position. JML class invariants state that during the execution of ANY method in the class, that the invariant should always hold. In the case of the content array and cursorPosition, it is relatively straightforward to constuct intuitive class invariants. 
 
-		1) The cursorPosition is always a valid value. The cursor should always point to a valid index in the content array OR, in the case of a full content array, it should be equal to the length of the array. 
+			a) The cursorPosition is always a valid value. The cursor should always point to a valid index in the content array OR, in the case of a full content array, it should be equal to the length of the array. 
 
-			/*@ public invariant	  
-			  @ 0 <= cursorPosition && cursorPosition <= content.length;
-			  @*/
+				/*@ public invariant	  
+				  @ 0 <= cursorPosition && cursorPosition <= content.length;
+				  @*/
 
-		2) The content before the cursor contains only single digits. In other words, the value of the array at every non-EMPTY position in the array should be between 0 and 9. Note that cursorPosition indicates the first EMPTY position of the array. 
+			b) The content before the cursor contains only single digits. In other words, the value of the array at every non-EMPTY position in the array should be between 0 and 9. Note that cursorPosition indicates the first EMPTY position of the array. 
 
-			/*@ public invariant	  
-			  @ (\forall int i; 0 <= i && i < cursorPosition; 0 <= content[i] && content[i] <= 9);
-			  @*/
+				/*@ public invariant	  
+				  @ (\forall int i; 0 <= i && i < cursorPosition; 0 <= content[i] && content[i] <= 9);
+				  @*/
 
-		3) The content after the cursor is EMPTY, where EMPTY = -1.
-
-			/*@ public invariant
-			  @ cursorPosition < content.length && 
-			  @ 		(\forall int i; i <= cursorPosition && cursorPosition < content.length; content[i] == -1);
-			  @*/
-
-
-	4d: JML method contracts and proof obligations for the NumericTextBoxData class.
-
-		
-
-			private /*@ spec_public @*/ int cursorPosition;
-
-			private /*@nullable@*/ /*@ spec_public @*/ int[] content;
-
-			private /*@nullable@*/ /*@ spec_public @*/ TextBoxRenderer textBoxRenderer;
-
-		Example JML method contract: 
+			c) The content after the cursor is EMPTY, where EMPTY = -1.
+						
+				/*@ public invariant
+				  @ cursorPosition <= content.length && 
+				  @ 		(\forall int i; cursorPosition <= i && i < content.length; content[i] == EMPTY || content[i] == 0);
+				  @*/
 
 
-			/*@ public normal_behaviour
-			  @ requires content != null && textRenderer != null;
-			  @ ensures true;
-			  @ assignable content[cursorPosition], cursorPosition, textBoxRenderer.contentChanged;
-			  @	
-			  @ also
-			  @
-			  @ public exceptional_behaviour
-			  @ requires true
-			  @ signals_only IllegalArgumentException;
-			  @ signals (IllegalArgumentException) textBoxRenderer.showError == true;
-			  @ assignable textBoxRenderer.showError;
-			  @
-			  @ also
-			  @
-			  @ public exceptional_behaviour
-			  @ requires cursorPosition == content.length;
-			  @ signals_only RuntimeException ;
-			  @ signals (RuntimeException) textBoxRenderer.showError == true;
-			  @ assignable textBoxRenderer.showError;
-			  @*/
+	4.4: JML method contracts and proof obligations for the NumericTextBoxData class.
+
+		A working implementation of the NumericTextBox class may be used to develop verified code by attaching JML contracts to every method in the NumericTextBoxData class. Proofs are then provided for each contract using the KeY tool. JML proofs for the NumericTextBoxData class are carried out as a separate process from application development, and are found in the numericTextBox/JML/ directory. In this exercise, the following methods and their JML contracts have been verified.
+
+			a) The class constructor. Note that for this method, it was necessary to exclude the class invariants when performing verification 
+
+				/*@ public normal_behaviour
+				  @ requires size > 0; 
+				  @ ensures (\forall int x; 0 <= x && x < content.length; content[x] == EMPTY );
+				  @*/
+				public NumericTextBoxData(int size){ }
+
+			b) The clear() method. Here the entire method is shown in order to elucidate the loop invariant. Note that in JML syntax, the loop invariant declaration must be placed directly before the while() declaration as shown (i.e. after the assignment operaion int i = 0).
+
+				/*@ public normal_behaviour
+				  @ requires content.length >= 0;
+				  @ ensures cursorPosition == 0 && (\forall int x; 0 <= x && x < content.length; content[x] == EMPTY );
+				  @ assignable cursorPosition, content[*], textBoxRenderer.contentChanged;
+				  @*/
+				public void clear(){
+
+					// ... 
+					int i = 0;
+
+					/*@ loop_invariant
+					  @ 0 <= i && i <= content.length && (\forall int x; 0 <= x && x < i; content[x] == EMPTY );
+					  @ assignable content[*];
+					  @ decreasing content.length - i;
+					  @*/
+					while (i < content.length){ }
+
+					// ... 
+				}
+
+			c) The enterCharachter() method. Note that this method covers two cases of exceptional_behaviour.
+
+				/*@ public normal_behaviour
+				  @ requires 0 <= cursorPosition && cursorPosition < content.length;
+				  @ requires 48 <= input && input <= 57;
+				  @ requires content[cursorPosition] == EMPTY;
+				  @ ensures 0 <= content[\old(cursorPosition)] && content[\old(cursorPosition)] <= 9;
+				  @ ensures cursorPosition == \old(cursorPosition) + 1;
+				  @ assignable cursorPosition, content[cursorPosition], textBoxRenderer.contentChanged;
+				  @
+				  @ also
+				  @
+				  @ public exceptional_behaviour
+				  @ requires input < 48 || input > 57;
+				  @ signals_only IllegalArgumentException;
+				  @ signals (IllegalArgumentException) cursorPosition == \old(cursorPosition);
+				  @ assignable textBoxRenderer.showError;
+				  @ also
+				  @
+				  @ public exceptional_behaviour
+				  @ requires cursorPosition == content.length;
+				  @ signals_only RuntimeException;
+				  @ signals (RuntimeException) cursorPosition == \old(cursorPosition);
+				  @ assignable textBoxRenderer.showError;
+				  @*/
+				public void enterCharacter(char input) { }
+
+			d) The backspace() method. 
+
+				/*@ public normal_behaviour
+				  @ requires cursorPosition > 0; 
+				  @ ensures content[cursorPosition] == EMPTY;
+				  @ ensures cursorPosition == \old(cursorPosition) - 1;
+				  @ assignable cursorPosition, content[cursorPosition - 1], textBoxRenderer.contentChanged;
+				  @
+				  @ also 
+				  @ 
+				  @ public exceptional_behaviour
+				  @ requires cursorPosition == 0;
+				  @ signals_only RuntimeException;
+				  @ signals (RuntimeException) cursorPosition == \old(cursorPosition);
+			  	  @ assignable textBoxRenderer.showError;
+				  @*/
+				public void backspace() { }
+
+		Following verification, the formally verified versions of these methods have been included in the application.
+
+	4.5: Source Tree. 
+
+		Application Sources (excluding .class JVM bytecode files)
+			javac/
+				├── img
+				│   ├── numericTextBox.exceptionalBehaviour.png
+				│   └── numericTextBox-normalBehaviour.png
+				└── NumericTextBox.java
+
+		Verification Sources (excluding .csv proof statistics files)	
+
+			JML/
+				├── NumericTextBoxData.java
+				└── proofs
+				    ├── backspace-exceptionalBehaviour0.proof
+				    ├── backspace-normalBehaviour0.proof
+				    ├── clear-normalBehaviour0.proof
+				    ├── enterCharachter-exceptionalBehaviour0.proof
+				    ├── enterCharachter-exceptionalBehaviour1.proof
+				    ├── enterCharachter-normalBehaviour0.proof
+				    └── NumericTextBoxData-noClassInvariants-normalBehaviour0.proof
