@@ -219,7 +219,7 @@ class TextBoxRenderer
 		frameTextBox = new JFrame("NumericTextBox");
 		frameTextBox.setPreferredSize(new Dimension(400, 300));
 		frameTextBox.pack();
-    	frameTextBox.setLocationRelativeTo(null);
+		frameTextBox.setLocationRelativeTo(null);
 		frameContent = new JLabel("", SwingConstants.CENTER);
 
 		/* Add the label to the text */
@@ -301,9 +301,9 @@ public class NumericTextBox
 		Scanner scanner = new Scanner(System.in);
 
 		/* Event loop */
-    	while(true) {
+		while(true) {
 
-    		try {
+			try {
 		
 				char ch = scanner.next().charAt(0);
 
@@ -330,10 +330,10 @@ public class NumericTextBox
 
 				numericTextBoxData.renderContent();
 
-    		}
-    		catch (Exception e) {
+				}
+			catch (Exception e) {
 				numericTextBoxData.renderError(e.getMessage());
-    		}
+			}
 		}	
 	}
 }
