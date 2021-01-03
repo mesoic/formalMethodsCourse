@@ -1,6 +1,5 @@
 public class Drawing{
 
-
     /*@ public invariant
       @ (\forall int i; 0 <= i && i < canvas.length; canvas[i].length == canvas.length);
       @*/

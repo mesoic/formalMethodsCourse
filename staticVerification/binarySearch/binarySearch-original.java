@@ -32,6 +32,7 @@ public class BinarySearch {
 	  @ ensures \result != -1 && numbers[\result] == query;
 	  @*/
 	public int performBinarySearch() {
+		
 		report("Eliminating duplicates.");
 		eliminateDuplicates(numbers);
 		report("Searching for " + query);

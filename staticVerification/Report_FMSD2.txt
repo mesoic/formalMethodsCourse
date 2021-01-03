@@ -2,26 +2,26 @@ Formal Methods in Software Development (TDA294 / DIT271): Lab2
 
 Problem 1: Verification of Propositional Logic Formula 
 
-	In this problem, KeY is to be used to develop a proof of a propositional logic formula. In addition to its primary function as a symbolic execution environment and theorem prover for Java programs, KeY allows users to operate on Propositional Logic (PL) formulae directly. The process flow for doing this is as follows. 
+	In this problem, KeY is to be used to develop a proof of a propositional logic formula. In addition to its primary function as a symbolic execution environment and theorem prover for Java programs, KeY allows users to operate on Propositional Logic (PL) formulas directly. The process flow for doing this is as follows. 
 
 		a) Translate PL formula into problem statement for KeY. This requires the user to specify:
 			- Sorts(Types): These are symbolic types
 			- Functions: Mapping of types to types
 			- Predicates: Mapping of types to booleans
-			- Problem: The statement of the forumla to be proved 
+			- Problem: The statement of the formula to be proved 
 		
 		b) Import problem statement into KeY 
 			- This expresses the formula as a sequent to be proven
 		
 		c) Apply calculus rules to close a proof
 
-	When importing formulae into KeY, as a general rulse the sequent has zero terms on the LHS, and one term on the RHS (the statemenet to be proven). Recall that the basic semantic interpretation of a sequent is that if all things on the LHS are true, then one thing on the RHS is true. Proof strategies often involve moving things from the RHS to the LHS and then seeking closure rules. 
+	When importing formulas into KeY, the LHS of the sequent is empty, and one term on the RHS (the statement to be proven). Recall that the basic semantic interpretation of a sequent is that if all things on the LHS are true, then one thing on the RHS is true. Proof strategies often involve moving things from the RHS to the LHS and then seeking closure rules. 
 
 	Proof strategy: In this case, the strategy for proving involves the following steps
 
-		a) All subforumlae involving quantifiers over i(x,y) are instantiated with i(x_0, y_0)
+		a) All sub-formulas involving quantifiers over i(x,y) are instantiated with i(x_0, y_0)
 
-		b) Proof is simplified ussing basic rules 
+		b) Proof is simplified using basic rules 
 
 		c) The formula involving r(x), !r(x), g(x), !g(x) is instantiated to x_0 or y_0, depending on proof branch 
 
@@ -37,7 +37,7 @@ Problem 1: Verification of Propositional Logic Formula
 
 Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ using Key
 
-	The problem involves verfying the behavior of the performBinarySearch method within the BinarySearch class via KeY symbolic execution. 
+	The problem involves verifying the behavior of the performBinarySearch method within the BinarySearch class via KeY symbolic execution. 
 
 		public int performBinarySearch() {
 			report("Eliminating duplicates.");
@@ -49,9 +49,9 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 
 	Since this method involves calls to other methods, the problem may be distilled into the development of a strategy for handling each method call. In order to do this, the decisions regarding each method call are shown below, based on the JML specification for each method. The decision to be made involves how to account for method calls in the proof. In general, a binary decision must be taken on how to account for method calls. 
 
-		a) inline expansion (method call): this strategy involves pasting the code of the method directly in the modality and executing symboliclly. This method is appropriate when one does NOT want to rely on the JML contract provided, but rather the implementation of the method as expressed in the code.  
+		a) inline expansion (method call): this strategy involves pasting the code of the method directly in the modality and executing symbolically. This method is appropriate when one does NOT want to rely on the JML contract provided, but rather the implementation of the method as expressed in the code.  
 
-		b) method contract: this strategy involves the transaltion of the JML method contract into dynamic logic (DL) and pasting the resulting (DL) into the proof obligation. It is important to note that this strategy ASSUMES that the method does what the JML contract says it does (suggesting that an additional proof step is required in order to determine whether the method does indeed fulfill the contract). This strategy of relying on contracts is useful when one wishes to abstract away the details of the implementations. 
+		b) method contract: this strategy involves the translation of the JML method contract into dynamic logic (DL) and pasting the resulting (DL) into the proof obligation. It is important to note that this strategy ASSUMES that the method does what the JML contract says it does (suggesting that an additional proof step is required in order to determine whether the method does indeed fulfill the contract). This strategy of relying on contracts is useful when one wishes to abstract away the details of the implementations. 
 
 	With respect to the methods in performBinarySearch(), the following strategies apply:
 
@@ -62,7 +62,7 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 				return;
 			}
 
-		b) eliminateDuplicates: The elimiate duplicates method removes duplicate entries from the array being searched. Because the algorithm involves a while loop, and no loop invariants are specified in the code, it is necessary to rely on the method contract when encountering eliminateDuplicates() in the proof. 
+		b) eliminateDuplicates: The eliminateDuplicates method removes duplicate entries from the array being searched. Because the algorithm involves a while loop, and no loop invariants are specified in the code, it is necessary to rely on the method contract when encountering eliminateDuplicates() in the proof. 
 
 			private void eliminateDuplicates(int[] numbers) {
 		
@@ -86,7 +86,7 @@ Problem 3.1: Verification of performBinarySearch method /* normal_behaviour */ u
 
 	Proof Results for /* normal_behaviour */: 
 
-		Proceeding in accordance with the methodolgy outlined above, proofs have been supplied for the performBinarySearch() method. Particlar attention must be made to the branching that occurs within the JML specification regarding normal behaviour. In this case, a simple branching occurs for search() as two specifications are provided. A separate proof must be provided for each branch.
+		Proceeding in accordance with the methodology outlined above, proofs have been supplied for the performBinarySearch() method. Particular attention must be made to the branching that occurs within the JML specification regarding normal behaviour. In this case, a simple branching occurs for search() as two specifications are provided. A separate proof must be provided for each branch.
 
 		Proof Strategy: performBinarySearch()
 
@@ -185,7 +185,7 @@ Problem 3.1: Verification of performBinarySearch method /* exceptional_behaviour
 			}
 		}
 
-	The "requires" class indicates the preconditions upon which exceptional_behaviour is expected. In this case, we expect exceptional behaviour when the length of the input array is zero (and the array is not null, meaning it has been initialized). This would occur if the user passed an empty int[] array to the method. When this is the case, the "signals_only" class specifies that the method throws a "RuntimeException". Looking at the code, we see that this can only occur if the method throws a "IndexOutOfBoundsException" for array access - noting that a "IndexOutOfBoundsException" sub-classes "RuntimeException". The "signals (RuntimeException)" class specifies as a postcondition of expetional behavoiur, that the size field of the BinarySearch class should be equal to -1. Finally, the "assignable" class indicates that the "size" field can be set by the method. Translating the JML statements into pseudo-code, we have the following interpretation.
+	The "requires" class indicates the preconditions upon which exceptional_behaviour is expected. In this case, we expect exceptional behaviour when the length of the input array is zero (and the array is not null, meaning it has been initialized). This would occur if the user passed an empty int[] array to the method. When this is the case, the "signals_only" class specifies that the method throws a "RuntimeException". Looking at the code, we see that this can only occur if the method throws a "IndexOutOfBoundsException" for array access - noting that a "IndexOutOfBoundsException" sub-classes "RuntimeException". The "signals (RuntimeException)" class specifies as a postcondition of exceptional behavoiur, that the size field of the BinarySearch class should be equal to -1. Finally, the "assignable" class indicates that the "size" field can be set by the method. Translating the JML statements into pseudo-code, we have the following interpretation.
 
 		/*@
 		  @ public exceptional_behaviour
@@ -312,7 +312,7 @@ Problem 3.3: Verification of Drawing class - Class invariants and Loop invariant
 		(error) 	@ 0 <= i && i <  canvas[depth].length && (\forall int x; 0 <= x && x < i; canvas[depth][x] == true );
 		(correct) 	@ 0 <= i && i <= canvas[depth].length && (\forall int x; 0 <= x && x < i; canvas[depth][x] == true );
 
-	This causes the proof to fail upon closure. The reason is that the loop invariant must hold AFTER the execution of every iteration of the loop. Upom the final iteration (when program execution exits the loop body), we have that (i == canvas[depth].length). However, this case is not expressed in the errored loop invariant. It does not hold in the after the guard to exit the while() loop evaluates to TRUE, hence the proof obligation fails in this case.
+	This causes the proof to fail upon closure. The reason is that the loop invariant must hold AFTER the execution of every iteration of the loop. Upon the final iteration (when program execution exits the loop body), we have that (i == canvas[depth].length). However, this case is not expressed in the errored loop invariant. It does not hold in the after the guard to exit the while() loop evaluates to TRUE, hence the proof obligation fails in this case.
 
  		The following files contain the documented changes, as well as proofs
 		|	drawingClass/drawing-modified.java 
@@ -323,11 +323,11 @@ Problem 3.3: Verification of Drawing class - Class invariants and Loop invariant
 
 Problem 4: Development of verified Java application including JML method contracts and method proofs using the KeY tool
 
-	This problem aims at a synthesis of the previous working examples using KeY. In this example, a simple application modelling a "numeric text box" is developed in Java. The application accepts charachters (or strings) as input from a simple command line interface (CLI), and places them in a data structure. With each new input, the data structure is rendered into a visual text box using a simple graphical user interface (javax.swing library). The application models text box data as a fixed length array of integers [0-9], and exception handling is structured such that the text box only accepts single digits as input. JML class invariants are developed in order to ensure integrity of the data structure at the class level, and JML method contracts are developed in order to ensure consistency of normal_behaviour and exceptional_behaviour handling. 
+	This problem aims at a synthesis of the previous working examples using KeY. In this example, a simple application modeling a "numeric text box" is developed in Java. The application accepts characters (or strings) as input from a simple command line interface (CLI), and places them in a data structure. With each new input, the data structure is rendered into a visual text box using a simple graphical user interface (javax.swing library). The application models text box data as a fixed length array of integers [0-9], and exception handling is structured such that the text box only accepts single digits as input. JML class invariants are developed in order to ensure integrity of the data structure at the class level, and JML method contracts are developed in order to ensure consistency of normal_behaviour and exceptional_behaviour handling. 
 
 	4.1: Application structure 
 
-		The program has been organised into three classes which handle data opertaion. All application class files are included in teh numericTextBox/javac directory. Note that the NumericTextBoxData class will be the target of verification efforts using KeY, and that verification efforts are carried out as a separate sub-process to application development. 
+		The program has been organized into three classes which handle data operation. All application class files are included in the numericTextBox/javac directory. Note that the NumericTextBoxData class will be the target of verification efforts using KeY, and that verification efforts are carried out as a separate sub-process to application development. 
 
 		Application structure:
 		| NumericTextBox: Contains the main function which implements the (CLI). Passes user input to NumericTextBoxData.
@@ -361,11 +361,11 @@ Problem 4: Development of verified Java application including JML method contrac
 				textBoxRenderer.renderContent(content, cursorPosition);
 			}
 	
-		As a user enters digits the array is populated, beginning at content[0] and continuing with content[1], content[2] etc. The cursorPosition variable always stores the index of the next EMPTY position in the array. Note that when the array is full, that cursorPostion = content.length (this is important to consider when consturcting JML invariants). The NumericTextBoxData class also has several methods which facilitate this user interaction. 
+		As a user enters digits the array is populated, beginning at content[0] and continuing with content[1], content[2] etc. The cursorPosition variable always stores the index of the next EMPTY position in the array. Note that when the array is full, that cursorPostion = content.length (this is important to consider when constructing JML invariants). The NumericTextBoxData class also has several methods which facilitate this user interaction. 
 
 			a) public void enterCharacter(char input): 
 
-				Take user input in the form of a single charachter. If the charachter is a digit [0-9] it is added to the content and the cursor position is advanced by one. If the charachter is not a digit, an IllegalArgumentException is thrown, and if the array is full a RuntimeException is thrown. 
+				Take user input in the form of a single character. If the character is a digit [0-9] it is added to the content and the cursor position is advanced by one. If the character is not a digit, an IllegalArgumentException is thrown, and if the array is full a RuntimeException is thrown. 
 	
 			b) public void backspace()
 
@@ -380,7 +380,7 @@ Problem 4: Development of verified Java application including JML method contrac
 
 	4.3 JML class invariants for the NumericTextBoxData class.
 
-		JML is used to define class invariants for the behaviour of the content array and cursor position. JML class invariants state that during the execution of ANY method in the class, that the invariant should always hold. In the case of the content array and cursorPosition, it is relatively straightforward to constuct intuitive class invariants. 
+		JML is used to define class invariants for the behaviour of the content array and cursor position. JML class invariants state that during the execution of ANY method in the class, that the invariant should always hold. In the case of the content array and cursorPosition, it is relatively straightforward to construct intuitive class invariants. 
 
 			a) The cursorPosition is always a valid value. The cursor should always point to a valid index in the content array OR, in the case of a full content array, it should be equal to the length of the array. 
 
@@ -414,7 +414,7 @@ Problem 4: Development of verified Java application including JML method contrac
 				  @*/
 				public NumericTextBoxData(int size){ }
 
-			b) The clear() method. Here the entire method is shown in order to elucidate the loop invariant. Note that in JML syntax, the loop invariant declaration must be placed directly before the while() declaration as shown (i.e. after the assignment operaion int i = 0).
+			b) The clear() method. Here the entire method is shown in order to elucidate the loop invariant. Note that in JML syntax, the loop invariant declaration must be placed directly before the while() declaration as shown (i.e. after the assignment operation int i = 0).
 
 				/*@ public normal_behaviour
 				  @ requires content.length >= 0;
@@ -504,3 +504,4 @@ Problem 4: Development of verified Java application including JML method contrac
 				    ├── enterCharachter-exceptionalBehaviour1.proof
 				    ├── enterCharachter-normalBehaviour0.proof
 				    └── NumericTextBoxData-noClassInvariants-normalBehaviour0.proof
+
