@@ -111,6 +111,7 @@ class NumericTextBoxData{
 	  @ signals_only IllegalArgumentException;
 	  @ signals (IllegalArgumentException) cursorPosition == \old(cursorPosition);
 	  @ assignable textBoxRenderer.showError;
+	  @
 	  @ also
 	  @
 	  @ public exceptional_behaviour
